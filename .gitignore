@@ -1,6 +1,7 @@
 # Environment variables
 .env
 *.env
+payment_integration_tasks.md
 
 # IDEs
 .idea/
