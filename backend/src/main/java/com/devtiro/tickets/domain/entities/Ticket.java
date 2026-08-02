@@ -52,6 +52,13 @@ public class Ticket {
   @JoinColumn(name = "purchaser_id")
   private User purchaser;
 
+  // The order that paid for this ticket. Nullable so existing/seeded tickets
+  // created before the Order flow existed don't break, but every ticket
+  // created going forward via the purchase flow will have one.
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "order_id")
+  private Order order;
+
   @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL)
   private List<TicketValidation> validations = new ArrayList<>();
 
