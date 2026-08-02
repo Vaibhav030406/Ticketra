@@ -9,6 +9,9 @@ import com.devtiro.tickets.exceptions.TicketNotFoundException;
 import com.devtiro.tickets.exceptions.TicketTypeNotFoundException;
 import com.devtiro.tickets.exceptions.TicketsSoldOutException;
 import com.devtiro.tickets.exceptions.UserNotFoundException;
+import com.devtiro.tickets.exceptions.OrderNotFoundException;
+import com.devtiro.tickets.exceptions.DuplicateOrderException;
+import com.devtiro.tickets.exceptions.InvalidOrderException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -124,6 +127,30 @@ public class GlobalExceptionHandler {
         ).orElse("Constraint violation occurred");
 
     errorDto.setError(errorMessage);
+    return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(OrderNotFoundException.class)
+  public ResponseEntity<ErrorDto> handleOrderNotFoundException(OrderNotFoundException ex) {
+    log.error("Caught OrderNotFoundException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError("Order not found");
+    return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(DuplicateOrderException.class)
+  public ResponseEntity<ErrorDto> handleDuplicateOrderException(DuplicateOrderException ex) {
+    log.error("Caught DuplicateOrderException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "Duplicate order request");
+    return new ResponseEntity<>(errorDto, HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(InvalidOrderException.class)
+  public ResponseEntity<ErrorDto> handleInvalidOrderException(InvalidOrderException ex) {
+    log.error("Caught InvalidOrderException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "Invalid order request");
     return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
   }
 
