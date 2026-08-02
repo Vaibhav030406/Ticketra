@@ -32,6 +32,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class OrderServiceImpl implements OrderService {
 
+  private static final int MAX_TICKETS_PER_ORDER = 5;
+
   private final UserRepository userRepository;
   private final TicketTypeRepository ticketTypeRepository;
   private final TicketRepository ticketRepository;
@@ -42,6 +44,11 @@ public class OrderServiceImpl implements OrderService {
   @Transactional
   public Order createOrder(UUID userId, CreateOrderRequest request) {
     LocalDateTime now = LocalDateTime.now();
+
+    // 1. Validate Quantity Cap
+    if (request.getQuantity() > MAX_TICKETS_PER_ORDER) {
+      throw new InvalidOrderException("A maximum of 5 tickets can be purchased per order");
+    }
 
     User purchaser = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(
@@ -56,12 +63,12 @@ public class OrderServiceImpl implements OrderService {
 
     Event event = ticketType.getEvent();
 
-    // 1. Validate Event Status
+    // 2. Validate Event Status
     if (event.getStatus() != EventStatusEnum.PUBLISHED) {
       throw new InvalidOrderException("Tickets cannot be purchased for an event that is not published");
     }
 
-    // 2. Validate Sales Window
+    // 3. Validate Sales Window
     if (event.getSalesStart() != null && now.isBefore(event.getSalesStart())) {
       throw new InvalidOrderException("Ticket sales for this event have not started yet");
     }
@@ -69,14 +76,14 @@ public class OrderServiceImpl implements OrderService {
       throw new InvalidOrderException("Ticket sales for this event have ended");
     }
 
-    // 3. Validate Idempotency Key
+    // 4. Validate Idempotency Key (fail-fast pre-check)
     if (orderRepository.existsByIdempotencyKey(request.getIdempotencyKey())) {
       throw new DuplicateOrderException(
           String.format("An order with idempotency key %s already exists", request.getIdempotencyKey())
       );
     }
 
-    // 4. Validate Ticket Stock Availability
+    // 5. Validate Ticket Stock Availability
     int issuedTickets = ticketRepository.countByTicketTypeId(ticketType.getId());
     int activePendingOrderStock = orderRepository.sumQuantityByTicketTypeIdAndStatusAndExpiresAtAfter(
         ticketType.getId(),
@@ -89,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
       throw new TicketsSoldOutException();
     }
 
-    // 5. Create Order Entity (pending state)
+    // 6. Create Order Entity (pending state)
     double unitPrice = ticketType.getPrice();
     double totalAmount = unitPrice * request.getQuantity();
 
@@ -102,18 +109,24 @@ public class OrderServiceImpl implements OrderService {
         .status(OrderStatusEnum.PENDING)
         .idempotencyKey(request.getIdempotencyKey())
         .expiresAt(now.plusMinutes(10))
-        .createdAt(now)
-        .updatedAt(now)
         .build();
 
-    // Save temporary order to generate UUID id
-    Order savedOrder = orderRepository.save(order);
+    // Save temporary order to generate UUID id.
+    // Use saveAndFlush + try-catch to safely handle concurrent TOCTOU race conditions.
+    Order savedOrder;
+    try {
+      savedOrder = orderRepository.saveAndFlush(order);
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      throw new DuplicateOrderException(
+          String.format("An order with idempotency key %s already exists", request.getIdempotencyKey()), e
+      );
+    }
 
-    // 6. Call Razorpay to create order
+    // 7. Call Razorpay to create order
     try {
       JSONObject orderRequest = new JSONObject();
-      // Razorpay expects amount in paise (1 INR = 100 paise)
-      orderRequest.put("amount", (int) (totalAmount * 100));
+      // Razorpay expects amount in paise (1 INR = 100 paise) - Round safely to avoid floating-point undercharges
+      orderRequest.put("amount", (int) Math.round(totalAmount * 100));
       orderRequest.put("currency", "INR");
       orderRequest.put("receipt", savedOrder.getId().toString());
 
@@ -121,7 +134,6 @@ public class OrderServiceImpl implements OrderService {
       String razorpayOrderId = razorpayOrder.get("id");
 
       savedOrder.setRazorpayOrderId(razorpayOrderId);
-      savedOrder.setUpdatedAt(LocalDateTime.now());
 
       return orderRepository.save(savedOrder);
     } catch (RazorpayException e) {
