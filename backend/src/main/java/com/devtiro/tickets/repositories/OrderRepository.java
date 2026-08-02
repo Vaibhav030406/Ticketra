@@ -14,7 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
   boolean existsByIdempotencyKey(String idempotencyKey);
 
-  @Query("SELECT COALESCE(SUM(o.quantity), 0) FROM Order o WHERE o.ticketType.id = :ticketTypeId AND o.status = :status AND o.expiresAt > :now")
+  @Query("SELECT COALESCE(SUM(o.quantity), 0) FROM CustomerOrder o WHERE o.ticketType.id = :ticketTypeId AND o.status = :status AND o.expiresAt > :now")
   int sumQuantityByTicketTypeIdAndStatusAndExpiresAtAfter(
       @Param("ticketTypeId") UUID ticketTypeId,
       @Param("status") OrderStatusEnum status,
