@@ -12,6 +12,7 @@ import com.devtiro.tickets.exceptions.UserNotFoundException;
 import com.devtiro.tickets.exceptions.OrderNotFoundException;
 import com.devtiro.tickets.exceptions.DuplicateOrderException;
 import com.devtiro.tickets.exceptions.InvalidOrderException;
+import com.devtiro.tickets.exceptions.InvalidWebhookSignatureException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -151,6 +152,15 @@ public class GlobalExceptionHandler {
     log.error("Caught InvalidOrderException", ex);
     ErrorDto errorDto = new ErrorDto();
     errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "Invalid order request");
+    return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(InvalidWebhookSignatureException.class)
+  public ResponseEntity<ErrorDto> handleInvalidWebhookSignatureException(
+      InvalidWebhookSignatureException ex) {
+    log.error("Caught InvalidWebhookSignatureException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError("Invalid webhook signature");
     return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
   }
 

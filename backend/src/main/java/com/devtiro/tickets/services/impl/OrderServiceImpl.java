@@ -5,10 +5,13 @@ import com.devtiro.tickets.domain.entities.Event;
 import com.devtiro.tickets.domain.entities.EventStatusEnum;
 import com.devtiro.tickets.domain.entities.Order;
 import com.devtiro.tickets.domain.entities.OrderStatusEnum;
+import com.devtiro.tickets.domain.entities.Ticket;
+import com.devtiro.tickets.domain.entities.TicketStatusEnum;
 import com.devtiro.tickets.domain.entities.TicketType;
 import com.devtiro.tickets.domain.entities.User;
 import com.devtiro.tickets.exceptions.DuplicateOrderException;
 import com.devtiro.tickets.exceptions.InvalidOrderException;
+import com.devtiro.tickets.exceptions.InvalidWebhookSignatureException;
 import com.devtiro.tickets.exceptions.TicketTypeNotFoundException;
 import com.devtiro.tickets.exceptions.TicketsSoldOutException;
 import com.devtiro.tickets.exceptions.UserNotFoundException;
@@ -17,14 +20,18 @@ import com.devtiro.tickets.repositories.TicketRepository;
 import com.devtiro.tickets.repositories.TicketTypeRepository;
 import com.devtiro.tickets.repositories.UserRepository;
 import com.devtiro.tickets.services.OrderService;
+import com.devtiro.tickets.services.QrCodeService;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,6 +46,10 @@ public class OrderServiceImpl implements OrderService {
   private final TicketRepository ticketRepository;
   private final OrderRepository orderRepository;
   private final RazorpayClient razorpayClient;
+  private final QrCodeService qrCodeService;
+
+  @Value("${razorpay.webhook.secret}")
+  private String webhookSecret;
 
   @Override
   @Transactional
@@ -140,5 +151,89 @@ public class OrderServiceImpl implements OrderService {
       log.error("Failed to create order on Razorpay for Order ID: {}", savedOrder.getId(), e);
       throw new InvalidOrderException("Unable to create Razorpay payment order: " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  @Transactional
+  public void handleRazorpayWebhook(String rawPayload, String signature) {
+    try {
+      Utils.verifyWebhookSignature(rawPayload, signature, webhookSecret);
+    } catch (Exception e) {
+      log.error("Razorpay webhook signature verification failed", e);
+      throw new InvalidWebhookSignatureException("Webhook signature verification failed", e);
+    }
+
+    JSONObject payload = new JSONObject(rawPayload);
+    String event = payload.optString("event");
+
+    // Defensive, null-safe navigation — a malformed/unexpected payload should
+    // never throw an NPE and take the whole handler down.
+    JSONObject payloadContainer = payload.optJSONObject("payload");
+    JSONObject paymentContainer =
+        payloadContainer != null ? payloadContainer.optJSONObject("payment") : null;
+    JSONObject paymentEntity =
+        paymentContainer != null ? paymentContainer.optJSONObject("entity") : null;
+
+    if (paymentEntity == null) {
+      log.warn("Received Razorpay webhook with no payment entity, event: {}", event);
+      return;
+    }
+
+    String razorpayOrderId = paymentEntity.optString("order_id");
+    String razorpayPaymentId = paymentEntity.optString("id");
+
+    if (razorpayOrderId == null || razorpayOrderId.isBlank()) {
+      log.warn("Razorpay webhook payment entity missing order_id, event: {}", event);
+      return;
+    }
+
+    Optional<Order> orderOpt = orderRepository.findByRazorpayOrderIdWithLock(razorpayOrderId);
+    if (orderOpt.isEmpty()) {
+      log.warn("No order found for Razorpay order ID: {}. Event: {}", razorpayOrderId, event);
+      return;
+    }
+
+    Order order = orderOpt.get();
+
+    // Idempotency: a terminal-state order has already been fully processed by
+    // an earlier delivery of this (or another) webhook event. Razorpay both
+    // retries on non-2xx responses and can send duplicate events, so this
+    // check is what prevents double-issuing tickets.
+    if (order.getStatus() == OrderStatusEnum.PAID || order.getStatus() == OrderStatusEnum.FAILED) {
+      log.info("Order {} already in terminal state {}, ignoring webhook event {}",
+          order.getId(), order.getStatus(), event);
+      return;
+    }
+
+    switch (event) {
+      case "payment.captured" -> handlePaymentCaptured(order, razorpayPaymentId);
+      case "payment.failed" -> handlePaymentFailed(order);
+      default -> log.info("Ignoring unhandled Razorpay webhook event: {}", event);
+    }
+  }
+
+  private void handlePaymentCaptured(Order order, String razorpayPaymentId) {
+    order.setStatus(OrderStatusEnum.PAID);
+    order.setRazorpayPaymentId(razorpayPaymentId);
+
+    // One Ticket (and one QR code) per unit of quantity — each attendee in a
+    // group purchase gets their own scannable ticket at the door.
+    for (int i = 0; i < order.getQuantity(); i++) {
+      Ticket ticket = new Ticket();
+      ticket.setStatus(TicketStatusEnum.PURCHASED);
+      ticket.setTicketType(order.getTicketType());
+      ticket.setPurchaser(order.getPurchaser());
+      ticket.setOrder(order);
+
+      Ticket savedTicket = ticketRepository.save(ticket);
+      qrCodeService.generateQrCode(savedTicket);
+    }
+
+    orderRepository.save(order);
+  }
+
+  private void handlePaymentFailed(Order order) {
+    order.setStatus(OrderStatusEnum.FAILED);
+    orderRepository.save(order);
   }
 }

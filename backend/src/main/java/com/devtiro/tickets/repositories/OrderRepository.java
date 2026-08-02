@@ -2,9 +2,12 @@ package com.devtiro.tickets.repositories;
 
 import com.devtiro.tickets.domain.entities.Order;
 import com.devtiro.tickets.domain.entities.OrderStatusEnum;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,4 +23,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
       @Param("status") OrderStatusEnum status,
       @Param("now") LocalDateTime now
   );
+
+  @Query("SELECT o FROM CustomerOrder o WHERE o.razorpayOrderId = :razorpayOrderId")
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<Order> findByRazorpayOrderIdWithLock(@Param("razorpayOrderId") String razorpayOrderId);
 }

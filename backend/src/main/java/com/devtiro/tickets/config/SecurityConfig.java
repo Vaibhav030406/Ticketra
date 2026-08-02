@@ -22,6 +22,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(authorize ->
             authorize
                 .requestMatchers(HttpMethod.GET, "/api/v1/published-events/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
                 .requestMatchers("/api/v1/events").hasRole("ORGANIZER")
                 .requestMatchers("/api/v1/ticket-validations").hasRole("STAFF")
                 // Catch all rule
