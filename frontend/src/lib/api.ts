@@ -3,6 +3,7 @@ import {
   EventDetails,
   EventSummary,
   isErrorResponse,
+  OrderResponse,
   PublishedEventDetails,
   PublishedEventSummary,
   SpringBootPagination,
@@ -337,4 +338,63 @@ export const validateTicket = async (
   }
 
   return responseBody as Promise<TicketValidationResponse>;
+};
+
+export const createOrder = async (
+  accessToken: string,
+  ticketTypeId: string,
+  quantity: number,
+  idempotencyKey: string,
+): Promise<OrderResponse> => {
+  const response = await fetch("/api/v1/orders", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ticketTypeId,
+      quantity,
+      idempotencyKey,
+    }),
+  });
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      console.error(JSON.stringify(responseBody));
+      throw new Error("An unknown error occurred");
+    }
+  }
+
+  return responseBody as OrderResponse;
+};
+
+export const getOrder = async (
+  accessToken: string,
+  orderId: string,
+): Promise<OrderResponse> => {
+  const response = await fetch(`/api/v1/orders/${orderId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      console.error(JSON.stringify(responseBody));
+      throw new Error("An unknown error occurred");
+    }
+  }
+
+  return responseBody as OrderResponse;
 };

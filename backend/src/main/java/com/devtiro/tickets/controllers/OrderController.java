@@ -15,6 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,5 +45,17 @@ public class OrderController {
     responseDto.setRazorpayKeyId(razorpayKeyId);
 
     return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
+  }
+
+  @GetMapping(path = "/{orderId}")
+  public ResponseEntity<CreateOrderResponseDto> getOrder(
+      @AuthenticationPrincipal Jwt jwt,
+      @PathVariable UUID orderId
+  ) {
+    Order order = orderService.getOrder(parseUserId(jwt), orderId);
+    CreateOrderResponseDto responseDto = orderMapper.toCreateOrderResponseDto(order);
+    responseDto.setRazorpayKeyId(razorpayKeyId);
+
+    return ResponseEntity.ok(responseDto);
   }
 }

@@ -200,3 +200,25 @@ export interface TicketValidationResponse {
   ticketId: string;
   status: TicketValidationStatus;
 }
+
+export enum OrderStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  EXPIRED = "EXPIRED",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
+}
+
+export interface OrderResponse {
+  id: string;
+  ticketTypeId: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  status: OrderStatus;
+  razorpayOrderId: string;
+  razorpayKeyId: string;
+  expiresAt: string;
+  createdAt: string;
+}

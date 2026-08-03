@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticketra Developer Checkout Utility</title>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --card-bg: rgba(30, 41, 59, 0.45);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary-accent: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+      --accent-hover: linear-gradient(90deg, #4f46e5 0%, #9333ea 100%);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --input-bg: rgba(15, 23, 42, 0.6);
+      --input-border: rgba(255, 255, 255, 0.1);
+      --input-focus: #818cf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      position: relative;
+    }
+
+    /* Glow decorations */
+    .container::before {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: #4f46e5;
+      filter: blur(120px);
+      top: -50px;
+      left: -50px;
+      z-index: -1;
+      opacity: 0.35;
+    }
+
+    .container::after {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: #db2777;
+      filter: blur(120px);
+      bottom: -50px;
+      right: -50px;
+      z-index: -1;
+      opacity: 0.25;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo-badge {
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+      margin-top: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #cbd5e1;
+    }
+
+    input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    input::placeholder {
+      color: #64748b;
+    }
+
+    .pay-btn {
+      width: 100%;
+      background: var(--primary-accent);
+      border: none;
+      border-radius: 12px;
+      padding: 1rem;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .pay-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+
+    .pay-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+    }
+
+    .info-box {
+      margin-top: 1.5rem;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    .info-box strong {
+      color: #f1f5f9;
+    }
+
+    .info-box code {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: #f472b6;
+      font-family: monospace;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <div class="header">
+      <span class="logo-badge">DEV TOOL</span>
+      <h1>Razorpay Checkout</h1>
+      <p class="subtitle">Quickly test the payment capture loop end-to-end</p>
+    </div>
+
+    <form id="checkoutForm" onsubmit="triggerPayment(event)">
+      <div class="form-group">
+        <label for="keyId">Razorpay Key ID</label>
+        <input 
+          type="text" 
+          id="keyId" 
+          placeholder="rzp_test_..." 
+          required 
+          value="rzp_test_TKxsWtoSiiCYQY"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="orderId">Razorpay Order ID</label>
+        <input 
+          type="text" 
+          id="orderId" 
+          placeholder="order_..." 
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="prefillEmail">Prefill Email (Optional)</label>
+        <input 
+          type="email" 
+          id="prefillEmail" 
+          placeholder="attendee@example.com" 
+          value="attendee@example.com"
+        >
+      </div>
+
+      <button type="submit" class="pay-btn">Open Checkout Modal</button>
+    </form>
+
+    <div class="info-box">
+      <strong>How to test:</strong>
+      <ol style="margin-left: 1.15rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+        <li>Get your <code>razorpayOrderId</code> from your backend order response.</li>
+        <li>Paste it above and hit <strong>Open Checkout Modal</strong>.</li>
+        <li>Use card number <code>4111 1111 1111 1111</code>, any future expiry & CVV.</li>
+        <li>Verify webhook capture and check tickets in database.</li>
+      </ol>
+    </div>
+  </div>
+  <p class="footer-note">Powered by Ticketra Developer Tools</p>
+</div>
+
+<!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  function triggerPayment(event) {
+    event.preventDefault();
+
+    const keyId = document.getElementById('keyId').value.trim();
+    const orderId = document.getElementById('orderId').value.trim();
+    const prefillEmail = document.getElementById('prefillEmail').value.trim();
+
+    if (!keyId || !orderId) {
+      alert("Please provide both Key ID and Order ID!");
+      return;
+    }
+
+    const options = {
+      "key": keyId,
+      "order_id": orderId,
+      "name": "Ticketra Platform",
+      "description": "Event Ticket Checkout",
+      "image": "https://img.icons8.com/color/120/000000/ticket.png",
+      "prefill": {
+        "name": "Attendee User",
+        "email": prefillEmail,
+        "contact": "9999999999"
+      },
+      "theme": {
+        "color": "#6366f1"
+      },
+      "handler": function (response) {
+        alert("Success!\nPayment ID: " + response.razorpay_payment_id + "\nOrder ID: " + response.razorpay_order_id);
+      },
+      "modal": {
+        "ondismiss": function() {
+          console.log("Checkout modal closed by user");
+        }
+      }
+    };
+
+    try {
+      const rzp = new Razorpay(options);
+      rzp.on('payment.failed', function (response){
+        alert("Payment Failed!\nReason: " + response.error.description);
+      });
+      rzp.open();
+    } catch (e) {
+      alert("Failed to initialize Razorpay Checkout. Verify your Key ID is correct.");
+      console.error(e);
+    }
+  }
+</script>
+
+</body>
+</html>

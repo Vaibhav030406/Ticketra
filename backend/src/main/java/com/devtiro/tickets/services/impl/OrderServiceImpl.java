@@ -14,6 +14,7 @@ import com.devtiro.tickets.exceptions.InvalidOrderException;
 import com.devtiro.tickets.exceptions.InvalidWebhookSignatureException;
 import com.devtiro.tickets.exceptions.TicketTypeNotFoundException;
 import com.devtiro.tickets.exceptions.TicketsSoldOutException;
+import com.devtiro.tickets.exceptions.OrderNotFoundException;
 import com.devtiro.tickets.exceptions.UserNotFoundException;
 import com.devtiro.tickets.repositories.OrderRepository;
 import com.devtiro.tickets.repositories.TicketRepository;
@@ -235,5 +236,21 @@ public class OrderServiceImpl implements OrderService {
   private void handlePaymentFailed(Order order) {
     order.setStatus(OrderStatusEnum.FAILED);
     orderRepository.save(order);
+  }
+
+  @Override
+  public Order getOrder(UUID userId, UUID orderId) {
+    Order order = orderRepository.findById(orderId)
+        .orElseThrow(() -> new OrderNotFoundException(
+            String.format("Order with ID %s was not found", orderId)
+        ));
+
+    if (!order.getPurchaser().getId().equals(userId)) {
+      throw new OrderNotFoundException(
+          String.format("Order with ID %s was not found", orderId)
+      );
+    }
+
+    return order;
   }
 }
