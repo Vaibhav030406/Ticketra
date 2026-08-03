@@ -116,6 +116,13 @@ const DashboardValidateQrPage: React.FC = () => {
       cleanId = cleanId.substring(prefix.length).trim();
     }
 
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(cleanId)) {
+      setError("Invalid ID format. Must be a valid 36-character UUID.");
+      return;
+    }
+
     // 1. Enqueue the scan locally (Offline first)
     const newScan = enqueueScan(cleanId, method);
     setLatestScanResult(newScan);
