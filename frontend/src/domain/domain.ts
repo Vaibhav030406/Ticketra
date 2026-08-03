@@ -203,6 +203,12 @@ export interface TicketValidationResponse {
   originalValidatedByName?: string;
 }
 
+export interface StaffUserResponse {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export enum OrderStatus {
   PENDING = "PENDING",
   PAID = "PAID",

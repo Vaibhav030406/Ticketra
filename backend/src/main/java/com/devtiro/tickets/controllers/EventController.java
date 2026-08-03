@@ -101,4 +101,44 @@ public class EventController {
     eventService.deleteEventForOrganizer(userId, eventId);
     return ResponseEntity.noContent().build();
   }
+
+  @PostMapping(path = "/{eventId}/staff")
+  public ResponseEntity<com.devtiro.tickets.domain.dtos.StaffUserResponseDto> addStaff(
+      @AuthenticationPrincipal Jwt jwt,
+      @PathVariable UUID eventId,
+      @Valid @RequestBody com.devtiro.tickets.domain.dtos.AddStaffRequestDto addStaffRequestDto) {
+    UUID userId = parseUserId(jwt);
+    Event updatedEvent = eventService.addStaffToEvent(userId, eventId, addStaffRequestDto.getEmail());
+
+    com.devtiro.tickets.domain.entities.User addedStaff = updatedEvent.getStaff().stream()
+        .filter(u -> u.getEmail().equalsIgnoreCase(addStaffRequestDto.getEmail()))
+        .findFirst()
+        .orElseThrow();
+
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(new com.devtiro.tickets.domain.dtos.StaffUserResponseDto(
+            addedStaff.getId(), addedStaff.getName(), addedStaff.getEmail()));
+  }
+
+  @DeleteMapping(path = "/{eventId}/staff/{staffUserId}")
+  public ResponseEntity<Void> removeStaff(
+      @AuthenticationPrincipal Jwt jwt,
+      @PathVariable UUID eventId,
+      @PathVariable UUID staffUserId) {
+    UUID userId = parseUserId(jwt);
+    eventService.removeStaffFromEvent(userId, eventId, staffUserId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping(path = "/{eventId}/staff")
+  public ResponseEntity<java.util.List<com.devtiro.tickets.domain.dtos.StaffUserResponseDto>> listStaff(
+      @AuthenticationPrincipal Jwt jwt,
+      @PathVariable UUID eventId) {
+    UUID userId = parseUserId(jwt);
+    java.util.List<com.devtiro.tickets.domain.entities.User> staffList = eventService.listStaffForEvent(userId, eventId);
+    java.util.List<com.devtiro.tickets.domain.dtos.StaffUserResponseDto> response = staffList.stream()
+        .map(u -> new com.devtiro.tickets.domain.dtos.StaffUserResponseDto(u.getId(), u.getName(), u.getEmail()))
+        .toList();
+    return ResponseEntity.ok(response);
+  }
 }

@@ -51,6 +51,16 @@ public class TicketValidationServiceImpl implements TicketValidationService {
             String.format("User with ID %s was not found", staffUserId)
         ));
 
+    // Verify staff assignment if event has explicit staff assigned
+    if (ticket.getTicketType() != null && ticket.getTicketType().getEvent() != null) {
+      com.devtiro.tickets.domain.entities.Event event = ticket.getTicketType().getEvent();
+      if (!event.getStaff().isEmpty() && !event.getStaff().contains(staffUser)) {
+        throw new com.devtiro.tickets.exceptions.StaffNotAssignedToEventException(
+            String.format("You are not assigned as gate staff for event '%s'", event.getName())
+        );
+      }
+    }
+
     TicketValidation ticketValidation = new TicketValidation();
     ticketValidation.setTicket(ticket);
     ticketValidation.setValidationMethod(ticketValidationMethod);

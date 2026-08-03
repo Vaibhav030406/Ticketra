@@ -33,8 +33,16 @@ import {
   EventStatusEnum,
   UpdateEventRequest,
   UpdateTicketTypeRequest,
+  StaffUserResponse,
 } from "@/domain/domain";
-import { createEvent, getEvent, updateEvent } from "@/lib/api";
+import {
+  createEvent,
+  getEvent,
+  updateEvent,
+  addEventStaff,
+  removeEventStaff,
+  listEventStaff,
+} from "@/lib/api";
 import { format } from "date-fns";
 import {
   AlertCircle,
@@ -187,13 +195,16 @@ const DashboardManageEventPage: React.FC = () => {
   const [eventSalesDateEnabled, setEventSalesDateEnabled] = useState(false);
 
   const [error, setError] = useState<string | undefined>();
+  const [staffList, setStaffList] = useState<StaffUserResponse[]>([]);
+  const [staffEmailInput, setStaffEmailInput] = useState("");
+  const [staffError, setStaffError] = useState<string | undefined>();
 
   const updateField = (field: keyof EventData, value: any) => {
     setEventData((prev) => ({ ...prev, [field]: value }));
   };
 
   useEffect(() => {
-    if (isEditMode && !isLoading && user?.access_token) {
+    if (isEditMode && !isLoading && user?.access_token && id) {
       const fetchEvent = async () => {
         const event: EventDetails = await getEvent(user.access_token, id);
         setEventData({
@@ -229,10 +240,40 @@ const DashboardManageEventPage: React.FC = () => {
         });
         setEventDateEnabled(!!(event.start || event.end));
         setEventSalesDateEnabled(!!(event.salesStart || event.salesEnd));
+
+        try {
+          const staff = await listEventStaff(user.access_token, id);
+          setStaffList(staff);
+        } catch (e) {
+          console.error("Failed to load staff list", e);
+        }
       };
       fetchEvent();
     }
-  }, [id, user]);
+  }, [id, user, isEditMode, isLoading]);
+
+  const handleAddStaff = async () => {
+    if (!id || !user?.access_token || !staffEmailInput.trim()) return;
+    try {
+      setStaffError(undefined);
+      const newStaff = await addEventStaff(user.access_token, id, staffEmailInput.trim());
+      setStaffList((prev) => [...prev.filter((s) => s.id !== newStaff.id), newStaff]);
+      setStaffEmailInput("");
+    } catch (err: any) {
+      setStaffError(err.message || "Failed to add staff member");
+    }
+  };
+
+  const handleRemoveStaff = async (staffUserId: string) => {
+    if (!id || !user?.access_token) return;
+    try {
+      setStaffError(undefined);
+      await removeEventStaff(user.access_token, id, staffUserId);
+      setStaffList((prev) => prev.filter((s) => s.id !== staffUserId));
+    } catch (err: any) {
+      setStaffError(err.message || "Failed to remove staff member");
+    }
+  };
 
   const formatTimeFromDate = (date: Date): string => {
     const hours = date.getHours().toString().padStart(2, "0");
@@ -678,6 +719,69 @@ const DashboardManageEventPage: React.FC = () => {
             </Select>
           </div>
         </div>
+
+        {/* Section 6: Gate Staff Management */}
+        {isEditMode && (
+          <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+            <div>
+              <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider">
+                Gate Staff Management
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                Assign staff members by email who are allowed to scan tickets for this event.
+              </p>
+            </div>
+
+            <div className="flex gap-3 max-w-md">
+              <Input
+                placeholder="Enter staff email (e.g. staff@example.com)"
+                value={staffEmailInput}
+                onChange={(e) => setStaffEmailInput(e.target.value)}
+                className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50 text-zinc-100"
+              />
+              <Button
+                type="button"
+                onClick={handleAddStaff}
+                className="bg-amber-500 text-zinc-950 hover:bg-amber-400 font-medium cursor-pointer"
+              >
+                Add Staff
+              </Button>
+            </div>
+
+            {staffError && (
+              <p className="text-xs text-red-400 font-medium">{staffError}</p>
+            )}
+
+            <div className="space-y-2 max-w-md">
+              {staffList.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic">
+                  No explicit staff members assigned yet. (All staff accounts can scan by default until specific staff are added).
+                </p>
+              ) : (
+                staffList.map((staff) => (
+                  <div
+                    key={staff.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/50 border border-white/[0.06]"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-zinc-200">{staff.name}</p>
+                      <p className="text-xs text-zinc-500">{staff.email}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveStaff(staff.id)}
+                      className="text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
+                    >
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <Alert

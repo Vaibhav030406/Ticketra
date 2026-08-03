@@ -166,5 +166,50 @@ public class EventServiceImpl implements EventService {
     return eventRepository.findByIdAndStatus(id, EventStatusEnum.PUBLISHED);
   }
 
+  @Override
+  @Transactional
+  public Event addStaffToEvent(UUID organizerId, UUID eventId, String staffEmail) {
+    Event event = getEventForOrganizer(organizerId, eventId)
+        .orElseThrow(EventNotFoundException::new);
 
+    User staffUser = userRepository.findByEmailIgnoreCase(staffEmail)
+        .orElseGet(() -> {
+          User newUser = new User();
+          newUser.setId(UUID.randomUUID());
+          newUser.setName(staffEmail.split("@")[0]);
+          newUser.setEmail(staffEmail.toLowerCase());
+          return userRepository.save(newUser);
+        });
+
+    if (!event.getStaff().contains(staffUser)) {
+      event.getStaff().add(staffUser);
+      staffUser.getStaffingEvents().add(event);
+      userRepository.save(staffUser);
+      return eventRepository.save(event);
+    }
+
+    return event;
+  }
+
+  @Override
+  @Transactional
+  public Event removeStaffFromEvent(UUID organizerId, UUID eventId, UUID staffUserId) {
+    Event event = getEventForOrganizer(organizerId, eventId)
+        .orElseThrow(EventNotFoundException::new);
+
+    User staffUser = userRepository.findById(staffUserId)
+        .orElseThrow(UserNotFoundException::new);
+
+    event.getStaff().remove(staffUser);
+    staffUser.getStaffingEvents().remove(event);
+    userRepository.save(staffUser);
+    return eventRepository.save(event);
+  }
+
+  @Override
+  public List<User> listStaffForEvent(UUID organizerId, UUID eventId) {
+    Event event = getEventForOrganizer(organizerId, eventId)
+        .orElseThrow(EventNotFoundException::new);
+    return event.getStaff();
+  }
 }

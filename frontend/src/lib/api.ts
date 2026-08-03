@@ -12,6 +12,7 @@ import {
   TicketValidationRequest,
   TicketValidationResponse,
   UpdateEventRequest,
+  StaffUserResponse,
 } from "@/domain/domain";
 
 export const createEvent = async (
@@ -397,4 +398,72 @@ export const getOrder = async (
   }
 
   return responseBody as OrderResponse;
+};
+
+export const addEventStaff = async (
+  accessToken: string,
+  eventId: string,
+  email: string
+): Promise<StaffUserResponse> => {
+  const response = await fetch(`/api/v1/events/${eventId}/staff`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      throw new Error("Failed to add staff member");
+    }
+  }
+
+  return responseBody as StaffUserResponse;
+};
+
+export const removeEventStaff = async (
+  accessToken: string,
+  eventId: string,
+  staffUserId: string
+): Promise<void> => {
+  const response = await fetch(`/api/v1/events/${eventId}/staff/${staffUserId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to remove staff member");
+  }
+};
+
+export const listEventStaff = async (
+  accessToken: string,
+  eventId: string
+): Promise<StaffUserResponse[]> => {
+  const response = await fetch(`/api/v1/events/${eventId}/staff`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      throw new Error("Failed to load staff list");
+    }
+  }
+
+  return responseBody as StaffUserResponse[];
 };

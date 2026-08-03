@@ -91,8 +91,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorDto> handleUserNotFoundException(UserNotFoundException ex) {
     log.error("Caught UserNotFoundException", ex);
     ErrorDto errorDto = new ErrorDto();
-    errorDto.setError("User not found");
+    errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "User not found");
     return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(com.devtiro.tickets.exceptions.StaffNotAssignedToEventException.class)
+  public ResponseEntity<ErrorDto> handleStaffNotAssignedToEventException(
+      com.devtiro.tickets.exceptions.StaffNotAssignedToEventException ex) {
+    log.error("Caught StaffNotAssignedToEventException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "Staff member is not assigned to this event");
+    return new ResponseEntity<>(errorDto, HttpStatus.FORBIDDEN);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
