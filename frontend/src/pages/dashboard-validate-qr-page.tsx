@@ -16,7 +16,7 @@ import {
   getQueue,
   getPendingCount,
   syncQueue,
-  clearSyncedScans,
+  clearAllScans,
 } from "@/lib/offline-queue";
 
 const DashboardValidateQrPage: React.FC = () => {
@@ -128,11 +128,9 @@ const DashboardValidateQrPage: React.FC = () => {
   };
 
   const handleClearHistory = () => {
-    clearSyncedScans();
+    clearAllScans();
     refreshLocalQueue();
-    if (latestScanResult?.synced) {
-      setLatestScanResult(undefined);
-    }
+    setLatestScanResult(undefined);
   };
 
   if (isLoading || !user?.access_token) {

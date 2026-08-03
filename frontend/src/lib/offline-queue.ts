@@ -69,6 +69,10 @@ export function clearSyncedScans() {
   writeQueue(queue);
 }
 
+export function clearAllScans() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 // Replays queued scans against the real API, strictly in the order they
 // were originally scanned. Order matters: the backend's duplicate-scan
 // detection is "first valid scan wins", so replaying out of order could
