@@ -199,6 +199,8 @@ export interface TicketValidationRequest {
 export interface TicketValidationResponse {
   ticketId: string;
   status: TicketValidationStatus;
+  originalValidationAt?: string;
+  originalValidatedByName?: string;
 }
 
 export enum OrderStatus {
