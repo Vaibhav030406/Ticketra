@@ -10,6 +10,8 @@ import org.mapstruct.ReportingPolicy;
 public interface TicketValidationMapper {
 
   @Mapping(target = "ticketId", source = "ticket.id")
+  @Mapping(target = "originalValidationAt", source = "originalValidationContext.createdAt")
+  @Mapping(target = "originalValidatedByName", source = "originalValidationContext.validatedBy.name")
   TicketValidationResponseDto toTicketValidationResponseDto(TicketValidation ticketValidation);
 
 }

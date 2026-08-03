@@ -48,6 +48,19 @@ public class TicketValidation {
   @JoinColumn(name = "ticket_id")
   private Ticket ticket;
 
+  // The staff member who performed this scan/validation. Taken from the
+  // authenticated JWT, never from the request body — staff must not be able
+  // to claim to be someone else.
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "validated_by_id")
+  private User validatedBy;
+
+  // Not persisted — populated in-memory only when this validation is a
+  // duplicate, so the mapper can build a response describing the original
+  // valid scan without a second query. See TicketValidationServiceImpl.
+  @jakarta.persistence.Transient
+  private TicketValidation originalValidationContext;
+
   @CreatedDate
   @Column(name = "created_at", updatable = false, nullable = false)
   private LocalDateTime createdAt;
