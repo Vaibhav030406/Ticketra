@@ -109,8 +109,15 @@ const DashboardValidateQrPage: React.FC = () => {
 
     setError(undefined);
     
+    // Sanitize the ID: strip out "Ticket ID " prefix and trim spaces
+    let cleanId = id.trim();
+    const prefix = "ticket id ";
+    if (cleanId.toLowerCase().startsWith(prefix)) {
+      cleanId = cleanId.substring(prefix.length).trim();
+    }
+
     // 1. Enqueue the scan locally (Offline first)
-    const newScan = enqueueScan(id, method);
+    const newScan = enqueueScan(cleanId, method);
     setLatestScanResult(newScan);
     refreshLocalQueue();
 
