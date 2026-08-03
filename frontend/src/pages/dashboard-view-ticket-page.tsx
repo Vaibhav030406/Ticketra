@@ -1,10 +1,12 @@
 import { TicketDetails, TicketStatus } from "@/domain/domain";
 import { getTicket, getTicketQr } from "@/lib/api";
 import { format } from "date-fns";
-import { Calendar, DollarSign, MapPin, Tag } from "lucide-react";
+import { Calendar, DollarSign, MapPin, Tag, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { useParams } from "react-router";
+import { useParams, Link } from "react-router";
+import StatusBadge from "@/components/status-badge";
+import { cn } from "@/lib/utils";
 
 const DashboardViewTicketPage: React.FC = () => {
   const [ticket, setTicket] = useState<TicketDetails | undefined>();
@@ -49,101 +51,166 @@ const DashboardViewTicketPage: React.FC = () => {
     };
   }, [user?.access_token, isLoading, id]);
 
-  const getStatusColor = (status: TicketStatus) => {
+  const getStatusVariant = (status: TicketStatus | string) => {
     switch (status) {
       case TicketStatus.PURCHASED:
-        return "text-green-400";
+        return "success";
       case TicketStatus.CANCELLED:
-        return "text-red-400";
+        return "danger";
       default:
-        return "text-gray-400";
+        return "neutral";
     }
   };
 
-  if (!ticket) {
-    return <p>Loading..</p>;
+  if (!ticket && !error) {
+    return (
+      <div className="flex items-center justify-center p-8 h-full">
+        <div className="w-full max-w-md animate-pulse">
+          <div className="h-96 bg-white/[0.03] rounded-xl border border-white/[0.06]"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-black min-h-screen text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="relative bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-3xl p-8 shadow-2xl">
-          {/* Status */}
-          <div className="bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full mb-8 text-center">
-            <span
-              className={`text-sm font-medium ${getStatusColor(ticket.status)}`}
-            >
-              {ticket?.status}
-            </span>
+    <div className="p-4 md:p-8 flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)]">
+      {error ? (
+        <div className="backdrop-blur-xl bg-white/[0.03] border border-red-500/40 rounded-xl overflow-hidden max-w-md w-full p-4 text-red-400">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">⚠️</span>
+            <span className="font-semibold">Error Loading Ticket</span>
           </div>
+          <p className="text-sm">{error}</p>
+        </div>
+      ) : (
+        ticket && (
+          <div className="w-full max-w-md relative">
+            {/* Ticket Card */}
+            <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-xl shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200">
+              {/* Top Accent Strip */}
+              <div className="h-2 w-full bg-gradient-to-r from-amber-500 to-orange-500"></div>
 
-          <div className="mb-2">
-            <h1 className="text-2xl font-bold mb-2">{ticket.eventName}</h1>
-            <div className="flex items-center gap-2 text-purple-200">
-              <MapPin className="w-4" />
-              <span>{ticket.eventVenue}</span>
-            </div>
-          </div>
+              {/* Status Badge - Absolute Top Right */}
+              <div className="absolute top-6 right-6">
+                <StatusBadge variant={getStatusVariant(ticket.status)}>
+                  {ticket.status}
+                </StatusBadge>
+              </div>
 
-          <div className="flex items-center gap-2 text-purple-300 mb-8">
-            <Calendar className="w-4 text-purple-200" />
-            <div>
-              {format(ticket.eventStart, "Pp")} -{" "}
-              {format(ticket.eventEnd, "Pp")}
-            </div>
-          </div>
-
-          <div className="flex justify-center mb-8">
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-              <div className="w-32 h-32 flex items-center justify-center">
-                {/* Loading */}
-                {isQrLoading && (
-                  <div className="text-xs text-center p2">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 mb-2 mx-auto"></div>
-                    <div className="text-gray-800">Loading QR...</div>
+              {/* Event Info */}
+              <div className="p-8 pb-0">
+                <h1 className="text-2xl font-bold text-zinc-100 pr-24 mb-4">
+                  {ticket.eventName}
+                </h1>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 text-zinc-400">
+                    <MapPin className="w-5 h-5 text-zinc-500 shrink-0 mt-0.5" />
+                    <span>{ticket.eventVenue}</span>
                   </div>
-                )}
-                {/* error */}
-                {error && (
-                  <div className="text-red-400 text-sm text-center p-2">
-                    <div className="mb-1">⚠️</div>
-                    {error}
+                  <div className="flex items-center gap-3 text-zinc-400">
+                    <Calendar className="w-5 h-5 text-zinc-500 shrink-0" />
+                    <div>
+                      {format(ticket.eventStart, "PP")} &bull;{" "}
+                      {format(ticket.eventStart, "p")}
+                    </div>
                   </div>
-                )}
-                {/* Display QR */}
-                {qrCodeUrl && !isQrLoading && !error && (
-                  <img
-                    src={qrCodeUrl}
-                    alt="QR Code for event"
-                    className="w-full h-full object-contain rounded-large"
-                  />
-                )}
+                </div>
+              </div>
+
+              {/* Perforation Line */}
+              <div className="relative flex items-center my-8">
+                <div
+                  className="absolute -left-3 h-6 w-6 rounded-full bg-zinc-950 border border-white/[0.06] z-10"
+                  style={{
+                    borderLeftColor: "transparent",
+                    borderTopColor: "transparent",
+                    borderBottomColor: "transparent",
+                    transform: "rotate(45deg)",
+                  }}
+                ></div>
+                <div className="w-full border-t-2 border-dashed border-white/[0.08]"></div>
+                <div
+                  className="absolute -right-3 h-6 w-6 rounded-full bg-zinc-950 border border-white/[0.06] z-10"
+                  style={{
+                    borderRightColor: "transparent",
+                    borderTopColor: "transparent",
+                    borderBottomColor: "transparent",
+                    transform: "rotate(-45deg)",
+                  }}
+                ></div>
+              </div>
+
+              {/* QR Code Section */}
+              <div className="px-8 flex flex-col items-center">
+                <div className="bg-white p-3 rounded-xl shadow-inner mb-4 w-44 h-44 flex items-center justify-center">
+                  {isQrLoading && (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
+                  )}
+                  {qrCodeUrl && !isQrLoading && (
+                    <img
+                      src={qrCodeUrl}
+                      alt="Ticket QR Code"
+                      className="w-full h-full object-contain rounded-md"
+                    />
+                  )}
+                </div>
+                <p className="text-zinc-500 text-sm">
+                  Present this QR code at the entrance
+                </p>
+              </div>
+
+              {/* Lower Perforation */}
+              <div className="relative flex items-center my-8">
+                <div
+                  className="absolute -left-3 h-6 w-6 rounded-full bg-zinc-950 border border-white/[0.06] z-10"
+                  style={{
+                    borderLeftColor: "transparent",
+                    borderTopColor: "transparent",
+                    borderBottomColor: "transparent",
+                    transform: "rotate(45deg)",
+                  }}
+                ></div>
+                <div className="w-full border-t-2 border-dashed border-white/[0.08]"></div>
+                <div
+                  className="absolute -right-3 h-6 w-6 rounded-full bg-zinc-950 border border-white/[0.06] z-10"
+                  style={{
+                    borderRightColor: "transparent",
+                    borderTopColor: "transparent",
+                    borderBottomColor: "transparent",
+                    transform: "rotate(-45deg)",
+                  }}
+                ></div>
+              </div>
+
+              {/* Footer Info */}
+              <div className="p-8 pt-0 flex justify-between items-end">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-zinc-300">
+                    <Tag className="w-4 h-4 text-zinc-500" />
+                    <span className="font-medium text-sm">
+                      {ticket.description}
+                    </span>
+                  </div>
+                  <p className="text-zinc-600 font-mono text-xs">{ticket.id}</p>
+                </div>
+                <div className="flex items-center text-amber-500 font-semibold text-xl">
+                  <DollarSign className="w-5 h-5 -mr-1" />
+                  <span>{ticket.price}</span>
+                </div>
               </div>
             </div>
           </div>
+        )
+      )}
 
-          <div className="text-center mb-8">
-            <p className="text-purple-200 text-sm">
-              Present this QR code at the venue for entry
-            </p>
-          </div>
-
-          <div className="space-y-2 mb-8">
-            <div className="flex items-center gap-2">
-              <Tag className="w-5 text-purple-200" />
-              <span className="font-semibold">{ticket.description}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 text-purple-200" />
-              <span className="font-semibold">{ticket.price}</span>
-            </div>
-          </div>
-
-          <div className="text-center mb-2">
-            <h4 className="text-sm font-semibold font-mono">Ticket ID</h4>
-            <p className="text-purple-200 text-sm font-mono">{ticket.id}</p>
-          </div>
-        </div>
+      <div className="mt-8">
+        <Link
+          to="/dashboard/tickets"
+          className="inline-flex items-center gap-2 text-zinc-400 hover:text-amber-500 transition-colors duration-200"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to My Tickets</span>
+        </Link>
       </div>
     </div>
   );

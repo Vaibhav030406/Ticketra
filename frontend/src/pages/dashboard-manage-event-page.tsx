@@ -1,9 +1,7 @@
-import NavBar from "@/components/nav-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -45,10 +43,13 @@ import {
   Plus,
   Ticket,
   Trash,
+  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, Link } from "react-router";
+import PageHeader from "@/components/page-header";
+import { cn } from "@/lib/utils";
 
 interface DateTimeSelectProperties {
   date: Date | undefined;
@@ -68,20 +69,27 @@ const DateTimeSelect: React.FC<DateTimeSelectProperties> = ({
   setEnabled,
 }) => {
   return (
-    <div className="flex gap-2 items-center">
-      <Switch checked={enabled} onCheckedChange={setEnabled} />
+    <div className="flex gap-4 items-center w-full">
+      <Switch
+        checked={enabled}
+        onCheckedChange={setEnabled}
+        className="data-[state=checked]:bg-amber-500"
+      />
 
       {enabled && (
-        <div className="w-full flex gap-2">
+        <div className="flex-1 flex gap-2">
           {/* Date */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button className="bg-gray-900 border-gray-700 border">
-                <CalendarIcon />
+              <Button className="flex-1 justify-start text-left font-normal bg-zinc-900/50 border-white/[0.08] hover:bg-white/[0.06] text-zinc-300">
+                <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? format(date, "PPP") : <span>Pick a Date</span>}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent
+              className="w-auto p-0 bg-zinc-950 border-white/[0.08]"
+              align="start"
+            >
               <Calendar
                 mode="single"
                 selected={date}
@@ -99,19 +107,17 @@ const DateTimeSelect: React.FC<DateTimeSelectProperties> = ({
 
                   setDate(correctedDate);
                 }}
-                className="rounded-md border shadow"
+                className="rounded-md border-0"
               />
             </PopoverContent>
           </Popover>
           {/* Time */}
-          <div className="flex gap-2 items-center">
-            <Input
-              type="time"
-              className="w-[90px] bg-gray-900 text-white border-gray-700 border [&::-webkit-calendar-picker-indicator]:invert"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
-          </div>
+          <Input
+            type="time"
+            className="w-[120px] bg-zinc-900/50 text-zinc-300 border-white/[0.08] focus-visible:ring-amber-500/50 [&::-webkit-calendar-picker-indicator]:invert"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
         </div>
       )}
     </div>
@@ -182,7 +188,6 @@ const DashboardManageEventPage: React.FC = () => {
 
   const [error, setError] = useState<string | undefined>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateField = (field: keyof EventData, value: any) => {
     setEventData((prev) => ({ ...prev, [field]: value }));
   };
@@ -432,351 +437,394 @@ const DashboardManageEventPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <NavBar />
-      <div className="container mx-auto px-4 py-8 max-w-xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">
-            {isEditMode ? "Edit Event" : "Create a New Event"}
-          </h1>
-          {isEditMode ? (
-            <>
-              {eventData.id && (
-                <p className="text-sm text-gray-400">ID: {eventData.id}</p>
-              )}
-              {eventData.createdAt && (
-                <p className="text-sm text-gray-400">
-                  Created At: {format(eventData.createdAt, "PPP")}
-                </p>
-              )}
-              {eventData.updatedAt && (
-                <p className="text-sm text-gray-400">
-                  Updated At: {format(eventData.updatedAt, "PPP")}
-                </p>
-              )}
-            </>
-          ) : (
-            <p>Fill out the form below to create your event</p>
+    <div className="p-4 md:p-8 space-y-8 max-w-3xl">
+      <Link
+        to="/dashboard/events"
+        className="inline-flex items-center gap-2 text-zinc-400 hover:text-amber-500 transition-colors duration-200"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Events</span>
+      </Link>
+
+      <PageHeader
+        title={isEditMode ? "Edit Event" : "Create Event"}
+        description={
+          isEditMode
+            ? "Update the details of your event"
+            : "Fill out the form below to create your new event"
+        }
+      />
+
+      {isEditMode && (
+        <div className="flex gap-4 text-xs text-zinc-500 font-mono">
+          {eventData.id && <p>ID: {eventData.id}</p>}
+          {eventData.createdAt && (
+            <p>Created: {format(eventData.createdAt, "PPP")}</p>
+          )}
+          {eventData.updatedAt && (
+            <p>Updated: {format(eventData.updatedAt, "PPP")}</p>
           )}
         </div>
+      )}
 
-        <form onSubmit={handleFormSubmit} className="space-y-4">
-          {/* Event Name */}
-          <div>
-            <div>
-              <label htmlFor="event-name" className="text-sm font-medium">
-                Event Name
-              </label>
-              <Input
-                id="event-name"
-                className="bg-gray-900 border-gray-700 text-white"
-                placeholder="Event Name"
-                value={eventData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                required
-              />
-            </div>
-            <p className="text-gray-400 text-xs">
+      <form onSubmit={handleFormSubmit} className="space-y-8">
+        {/* Section 1: Basic Info */}
+        <div className="space-y-6 pt-4 border-t border-white/[0.06]">
+          <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider">
+            Basic Information
+          </h2>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="event-name" className="text-zinc-300">
+              Event Name
+            </Label>
+            <Input
+              id="event-name"
+              className="bg-zinc-900/50 border-white/[0.08] text-zinc-100 focus-visible:ring-amber-500/50"
+              placeholder="e.g. Summer Music Festival 2024"
+              value={eventData.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              required
+            />
+            <p className="text-zinc-500 text-xs">
               This is the public name of your event.
             </p>
           </div>
 
-          {/* Event Start Date Time */}
-          <div>
-            <label className="text-sm font-medium">Event Start</label>
-            <DateTimeSelect
-              date={eventData.startDate}
-              setDate={(date) => updateField("startDate", date)}
-              time={eventData.startTime}
-              setTime={(time) => updateField("startTime", time)}
-              enabled={eventDateEnabled}
-              setEnabled={setEventDateEnabled}
-            />
-            <p className="text-gray-400 text-xs">
-              The date and time that the event starts.
-            </p>
-          </div>
-
-          {/* Event End Date Time */}
-          <div>
-            <label className="text-sm font-medium">Event End</label>
-            <DateTimeSelect
-              date={eventData.endDate}
-              setDate={(date) => updateField("endDate", date)}
-              time={eventData.endTime}
-              setTime={(time) => updateField("endTime", time)}
-              enabled={eventDateEnabled}
-              setEnabled={setEventDateEnabled}
-            />
-            <p className="text-gray-400 text-xs">
-              The date and time that the event ends.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="venue-details" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="venue-details" className="text-zinc-300">
               Venue Details
-            </label>
+            </Label>
             <Textarea
               id="venue-details"
-              className="bg-gray-900 border-gray-700 min-h-[100px]"
+              className="bg-zinc-900/50 border-white/[0.08] text-zinc-100 min-h-[100px] focus-visible:ring-amber-500/50"
+              placeholder="e.g. Central Park, New York, NY"
               value={eventData.venueDetails}
               onChange={(e) => updateField("venueDetails", e.target.value)}
             />
-            <p className="text-gray-400 text-xs">
+            <p className="text-zinc-500 text-xs">
               Details about the venue, please include as much detail as
               possible.
             </p>
           </div>
+        </div>
 
-          {/* Event Sales Start Date Time */}
-          <div>
-            <label className="text-sm font-medium">Event Sales Start</label>
-            <DateTimeSelect
-              date={eventData.salesStartDate}
-              setDate={(date) => updateField("salesStartDate", date)}
-              time={eventData.salesStartTime}
-              setTime={(time) => updateField("salesStartTime", time)}
-              enabled={eventSalesDateEnabled}
-              setEnabled={setEventSalesDateEnabled}
-            />
-            <p className="text-gray-400 text-xs">
-              The date and time that ticket are available to purchase for the
-              event.
-            </p>
+        {/* Section 2: Date & Time */}
+        <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+          <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider">
+            Date & Time
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Event Start</Label>
+              <DateTimeSelect
+                date={eventData.startDate}
+                setDate={(date) => updateField("startDate", date)}
+                time={eventData.startTime}
+                setTime={(time) => updateField("startTime", time)}
+                enabled={eventDateEnabled}
+                setEnabled={setEventDateEnabled}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Event End</Label>
+              <DateTimeSelect
+                date={eventData.endDate}
+                setDate={(date) => updateField("endDate", date)}
+                time={eventData.endTime}
+                setTime={(time) => updateField("endTime", time)}
+                enabled={eventDateEnabled}
+                setEnabled={setEventDateEnabled}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Sales Period */}
+        <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+          <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider">
+            Sales Period
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Sales Start</Label>
+              <DateTimeSelect
+                date={eventData.salesStartDate}
+                setDate={(date) => updateField("salesStartDate", date)}
+                time={eventData.salesStartTime}
+                setTime={(time) => updateField("salesStartTime", time)}
+                enabled={eventSalesDateEnabled}
+                setEnabled={setEventSalesDateEnabled}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Sales End</Label>
+              <DateTimeSelect
+                date={eventData.salesEndDate}
+                setDate={(date) => updateField("salesEndDate", date)}
+                time={eventData.salesEndTime}
+                setTime={(time) => updateField("salesEndTime", time)}
+                enabled={eventSalesDateEnabled}
+                setEnabled={setEventSalesDateEnabled}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Ticket Types */}
+        <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+          <div className="flex justify-between items-center">
+            <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider flex items-center gap-2">
+              <Ticket className="w-4 h-4" />
+              Ticket Types
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleAddTicketType()}
+              className="border-white/[0.08] text-zinc-300 hover:bg-white/[0.06] hover:text-white transition-all duration-200"
+            >
+              <Plus className="w-4 h-4 mr-1.5" /> Add Ticket
+            </Button>
           </div>
 
-          {/* Event Sales End Date Time */}
-          <div>
-            <label className="text-sm font-medium">Event Sales End</label>
-            <DateTimeSelect
-              date={eventData.salesEndDate}
-              setDate={(date) => updateField("salesEndDate", date)}
-              time={eventData.salesEndTime}
-              setTime={(time) => updateField("salesEndTime", time)}
-              enabled={eventSalesDateEnabled}
-              setEnabled={setEventSalesDateEnabled}
-            />
-            <p className="text-gray-400 text-xs">
-              The date and time that ticket are available to purchase for the
-              event.
-            </p>
-          </div>
-
-          {/* Ticket Types */}
-          <div>
-            <Card className="bg-gray-900 border-gray-700 text-white">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <CardHeader>
-                  <div className="flex justify-between">
-                    <CardTitle className="flex gap-2 items-center text-sm">
-                      <Ticket />
-                      Ticket Types
-                    </CardTitle>
+          <div className="space-y-3">
+            {eventData.ticketTypes.length === 0 ? (
+              <div className="text-center py-8 border border-dashed border-white/[0.1] rounded-xl text-zinc-500 text-sm">
+                No ticket types added yet.
+              </div>
+            ) : (
+              eventData.ticketTypes.map((ticketType) => (
+                <div
+                  key={ticketType.id}
+                  className="backdrop-blur-xl bg-white/[0.02] p-4 rounded-xl border border-white/[0.06] flex justify-between items-center hover:bg-white/[0.04] transition-all duration-200"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="font-medium text-zinc-100">
+                        {ticketType.name}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className="border-amber-500/30 text-amber-500 bg-amber-500/10 font-medium"
+                      >
+                        ${ticketType.price}
+                      </Badge>
+                    </div>
+                    {ticketType.totalAvailable && (
+                      <p className="text-zinc-400 text-sm">
+                        {ticketType.totalAvailable} capacity
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
                     <Button
                       type="button"
-                      onClick={() => handleAddTicketType()}
-                      className="bg-gray-800 border-gray-700 text-white"
+                      variant="ghost"
+                      size="icon"
+                      className="text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]"
+                      onClick={() => handleEditTicketType(ticketType)}
                     >
-                      <Plus /> Add Ticket Type
+                      <Edit className="w-4 h-4" />
                     </Button>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-2">
-                  {eventData.ticketTypes.map((ticketType) => {
-                    return (
-                      <div className="bg-gray-700 w-full p-4 rounded-lg border-gray-600">
-                        <div className="flex justify-between items-center">
-                          {/* Left */}
-                          <div>
-                            <div className="flex gap-4">
-                              <p className="text-small font-medium">
-                                {ticketType.name}
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className="border-gray-600 text-white font-normal text-xs"
-                              >
-                                ${ticketType.price}
-                              </Badge>
-                            </div>
-                            {ticketType.totalAvailable && (
-                              <p className="text-gray-400">
-                                {ticketType.totalAvailable} tickets available
-                              </p>
-                            )}
-                          </div>
-                          {/* Right */}
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={() => handleEditTicketType(ticketType)}
-                            >
-                              <Edit />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="text-red-400"
-                              onClick={() =>
-                                handleDeleteTicketType(ticketType.id)
-                              }
-                            >
-                              <Trash />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-                <DialogContent className="bg-gray-900 border-gray-700 text-white">
-                  <DialogHeader>
-                    <DialogTitle>Add Ticket Type</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Please enter details of the ticket type
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  {/* Ticket Type Name */}
-                  <div className="space-y-1">
-                    <Label htmlFor="ticket-type-name">Name</Label>
-                    <Input
-                      id="ticket-type-name"
-                      className="bg-gray-800 border-gray-700"
-                      value={currentTicketType?.name}
-                      onChange={(e) =>
-                        setCurrentTicketType(
-                          currentTicketType
-                            ? { ...currentTicketType, name: e.target.value }
-                            : undefined,
-                        )
-                      }
-                      placeholder="e.g General Admission, VIP, etc."
-                    />
-                  </div>
-
-                  <div className="flex gap-4">
-                    {/* Price */}
-                    <div className="space-y-1 w-full">
-                      <Label htmlFor="ticket-type-price">Price</Label>
-                      <Input
-                        id="ticket-type-price"
-                        type="number"
-                        value={currentTicketType?.price}
-                        onChange={(e) =>
-                          setCurrentTicketType(
-                            currentTicketType
-                              ? {
-                                  ...currentTicketType,
-                                  price: Number.parseFloat(e.target.value),
-                                }
-                              : undefined,
-                          )
-                        }
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-
-                    {/* Total Available */}
-                    <div className="space-y-1 w-full">
-                      <Label htmlFor="ticket-type-total-available">
-                        Total Available
-                      </Label>
-                      <Input
-                        id="ticket-type-total-available"
-                        type="number"
-                        value={currentTicketType?.totalAvailable}
-                        onChange={(e) =>
-                          setCurrentTicketType(
-                            currentTicketType
-                              ? {
-                                  ...currentTicketType,
-                                  totalAvailable: Number.parseFloat(
-                                    e.target.value,
-                                  ),
-                                }
-                              : undefined,
-                          )
-                        }
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Ticket Type Description */}
-                  <div className="space-y-1">
-                    <Label htmlFor="ticket-type-description">Description</Label>
-                    <Textarea
-                      id="ticket-type-description"
-                      className="bg-gray-800 border-gray-700"
-                      value={currentTicketType?.description}
-                      onChange={(e) =>
-                        setCurrentTicketType(
-                          currentTicketType
-                            ? {
-                                ...currentTicketType,
-                                description: e.target.value,
-                              }
-                            : undefined,
-                        )
-                      }
-                    />
-                  </div>
-                  <DialogFooter>
                     <Button
-                      className="bg-white text-black hover:bg-gray-300"
-                      onClick={handleSaveTicketType}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
+                      onClick={() => handleDeleteTicketType(ticketType.id)}
                     >
-                      Save
+                      <Trash className="w-4 h-4" />
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </Card>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+        </div>
 
-          {/* Status */}
-          <div className="space-y-1">
-            <Label>Status</Label>
+        {/* Section 5: Status */}
+        <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+          <h2 className="text-sm font-medium text-amber-500/80 uppercase tracking-wider">
+            Publishing
+          </h2>
+
+          <div className="space-y-1.5 max-w-[200px]">
+            <Label className="text-zinc-300">Status</Label>
             <Select
               value={eventData.status}
               onValueChange={(value) => updateField("status", value)}
             >
-              <SelectTrigger className="w-[180px] bg-gray-900 border-gray-700 text-white">
+              <SelectTrigger className="bg-zinc-900/50 border-white/[0.08] text-zinc-100 focus:ring-amber-500/50">
                 <SelectValue placeholder="Select Event Status" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700 text-white">
+              <SelectContent className="bg-zinc-900 border-white/[0.08] text-zinc-100">
                 <SelectItem value={EventStatusEnum.DRAFT}>Draft</SelectItem>
                 <SelectItem value={EventStatusEnum.PUBLISHED}>
                   Published
                 </SelectItem>
+                <SelectItem value={EventStatusEnum.CANCELLED}>
+                  Cancelled
+                </SelectItem>
+                <SelectItem value={EventStatusEnum.COMPLETED}>
+                  Completed
+                </SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-gray-400 text-xs">
-              Please select the status of the new event.
-            </p>
           </div>
+        </div>
 
-          {error && (
-            <Alert variant="destructive" className="bg-gray-900 border-red-700">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        {error && (
+          <Alert
+            variant="destructive"
+            className="bg-red-500/10 border-red-500/30 text-red-400"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error saving event</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div>
-            <Button onClick={handleFormSubmit}>
-              {isEditMode ? "Update" : "Submit"}
+        <div className="pt-6">
+          <Button
+            onClick={handleFormSubmit}
+            className="w-full sm:w-auto px-8 bg-amber-500 text-zinc-950 hover:bg-amber-400 font-medium transition-all duration-200"
+          >
+            {isEditMode ? "Save Changes" : "Create Event"}
+          </Button>
+        </div>
+      </form>
+
+      {/* Ticket Type Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-zinc-950 border-white/[0.08] text-zinc-100">
+          <DialogHeader>
+            <DialogTitle>
+              {currentTicketType?.id ? "Edit Ticket Type" : "Add Ticket Type"}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Set the price and capacity for this ticket type.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="ticket-type-name" className="text-zinc-300">
+                Name
+              </Label>
+              <Input
+                id="ticket-type-name"
+                className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50"
+                value={currentTicketType?.name}
+                onChange={(e) =>
+                  setCurrentTicketType(
+                    currentTicketType
+                      ? { ...currentTicketType, name: e.target.value }
+                      : undefined,
+                  )
+                }
+                placeholder="e.g General Admission, VIP"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="ticket-type-price" className="text-zinc-300">
+                  Price ($)
+                </Label>
+                <Input
+                  id="ticket-type-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={currentTicketType?.price}
+                  onChange={(e) =>
+                    setCurrentTicketType(
+                      currentTicketType
+                        ? {
+                            ...currentTicketType,
+                            price: Number.parseFloat(e.target.value),
+                          }
+                        : undefined,
+                    )
+                  }
+                  className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="ticket-type-total-available"
+                  className="text-zinc-300"
+                >
+                  Capacity
+                </Label>
+                <Input
+                  id="ticket-type-total-available"
+                  type="number"
+                  min="0"
+                  value={currentTicketType?.totalAvailable}
+                  onChange={(e) =>
+                    setCurrentTicketType(
+                      currentTicketType
+                        ? {
+                            ...currentTicketType,
+                            totalAvailable: Number.parseFloat(e.target.value),
+                          }
+                        : undefined,
+                    )
+                  }
+                  className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="ticket-type-description"
+                className="text-zinc-300"
+              >
+                Description
+              </Label>
+              <Textarea
+                id="ticket-type-description"
+                className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50 min-h-[80px]"
+                value={currentTicketType?.description}
+                onChange={(e) =>
+                  setCurrentTicketType(
+                    currentTicketType
+                      ? {
+                          ...currentTicketType,
+                          description: e.target.value,
+                        }
+                      : undefined,
+                  )
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              className="border-white/[0.08] text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+            >
+              Cancel
             </Button>
-          </div>
-        </form>
-        {/* For Development Only */}
-        {/* <p className="mt-8 font-mono text-white">{JSON.stringify(eventData)}</p> */}
-      </div>
+            <Button
+              className="bg-amber-500 text-zinc-950 hover:bg-amber-400 font-medium"
+              onClick={handleSaveTicketType}
+            >
+              Save Ticket Type
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

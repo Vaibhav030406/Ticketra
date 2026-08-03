@@ -57,7 +57,7 @@ const PurchaseTicketPage: React.FC = () => {
       return;
     }
     const timer = setTimeout(() => {
-      navigate("/tickets");
+      navigate("/dashboard/tickets");
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -132,7 +132,7 @@ const PurchaseTicketPage: React.FC = () => {
           email: user.profile.email || "attendee@example.com",
         },
         theme: {
-          color: "#818cf8",
+          color: "#f59e0b",
         },
         handler: function () {
           pollOrderStatus(order.id);
@@ -158,16 +158,27 @@ const PurchaseTicketPage: React.FC = () => {
 
   if (isPurchaseSuccess) {
     return (
-      <div className="bg-black min-h-screen text-white flex items-center">
-        <div className="max-w-md mx-auto p-8 text-center">
-          <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm text-black">
-            <div className="space-y-4">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto animate-bounce" />
-              <h2 className="text-2xl font-bold text-green-600">Booking Confirmed!</h2>
-              <p className="text-gray-600">
+      <div className="bg-zinc-950 min-h-screen text-zinc-100 flex items-center justify-center relative overflow-hidden">
+        {/* Ambient glow orbs */}
+        <div className="absolute top-20 right-1/4 w-72 h-72 bg-emerald-500/8 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-20 left-1/4 w-56 h-56 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="max-w-md mx-auto w-full px-4">
+          <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-2xl p-10 text-center relative overflow-hidden">
+            {/* Emerald accent glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="space-y-5 relative z-10">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 mx-auto">
+                <CheckCircle className="h-10 w-10 text-emerald-400 animate-bounce" />
+              </div>
+              <h2 className="text-2xl font-bold text-emerald-400 tracking-tight">
+                Booking Confirmed!
+              </h2>
+              <p className="text-zinc-400 text-sm">
                 Your ticket purchase was successful.
               </p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-zinc-500 text-xs">
                 Redirecting to your tickets page in a few seconds...
               </p>
             </div>
@@ -178,49 +189,66 @@ const PurchaseTicketPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-black min-h-screen text-white flex items-center relative">
-      {/* Loading Overlay */}
+    <div className="bg-zinc-950 min-h-screen text-zinc-100 flex items-center justify-center relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute -top-10 right-1/4 w-80 h-80 bg-amber-500/8 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 left-1/3 w-56 h-56 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Processing Overlay */}
       {isProcessing && (
-        <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="h-12 w-12 text-indigo-400 animate-spin" />
-          <p className="text-lg font-medium text-indigo-200">{statusMessage}</p>
+        <div className="fixed inset-0 bg-zinc-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 w-12 h-12 bg-amber-500/20 rounded-full blur-xl" />
+            <Loader2 className="h-12 w-12 text-amber-400 animate-spin relative z-10" />
+          </div>
+          <p className="text-lg font-medium text-amber-200">{statusMessage}</p>
         </div>
       )}
 
-      <div className="max-w-md mx-auto py-10 w-full px-4">
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-2xl relative overflow-hidden">
+      <div className="max-w-md mx-auto py-10 w-full px-4 relative z-10">
+        <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 space-y-6 relative overflow-hidden">
           {/* Subtle Accent Glow */}
-          <div className="absolute top-0 right-0 w-32 height-32 bg-indigo-500/10 rounded-full blur-3xl -z-10"></div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="space-y-2">
-            <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Secure Checkout</span>
-            <h1 className="text-2xl font-bold tracking-tight">Confirm Purchase</h1>
-            {event && <p className="text-neutral-400 text-sm">{event.name} &bull; {event.venue}</p>}
+          <div className="space-y-2 relative z-10">
+            <span className="text-xs font-semibold text-amber-400 uppercase tracking-widest">
+              Secure Checkout
+            </span>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+              Confirm Purchase
+            </h1>
+            {event && (
+              <p className="text-zinc-400 text-sm">
+                {event.name} &bull; {event.venue}
+              </p>
+            )}
           </div>
 
           {error && (
-            <div className="border border-red-900/50 rounded-xl p-4 bg-red-950/20 text-red-400 text-sm">
+            <div className="backdrop-blur-sm border border-red-500/20 rounded-xl p-4 bg-red-500/[0.06] text-red-400 text-sm relative z-10">
               <strong>Error:</strong> {error}
             </div>
           )}
 
           {ticketType && (
-            <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 space-y-4">
+            <div className="bg-zinc-900/50 border border-white/[0.06] rounded-xl p-4 space-y-4 relative z-10">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold text-neutral-100">{ticketType.name}</h3>
-                  <p className="text-xs text-neutral-500">{ticketType.description}</p>
+                  <h3 className="font-semibold text-zinc-100">{ticketType.name}</h3>
+                  <p className="text-xs text-zinc-500">{ticketType.description}</p>
                 </div>
-                <span className="font-bold text-indigo-400">₹{ticketType.price}</span>
+                <span className="font-bold text-amber-400">₹{ticketType.price}</span>
               </div>
 
-              <div className="border-t border-neutral-800 pt-3 flex justify-between items-center">
-                <Label htmlFor="quantity-select" className="text-neutral-400 text-sm">Quantity</Label>
+              <div className="border-t border-white/[0.06] pt-3 flex justify-between items-center">
+                <Label htmlFor="quantity-select" className="text-zinc-400 text-sm">
+                  Quantity
+                </Label>
                 <select
                   id="quantity-select"
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value))}
-                  className="bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-indigo-500 text-sm"
+                  className="bg-zinc-900 border border-white/[0.08] rounded-lg px-3 py-1.5 text-zinc-200 focus:outline-none focus:border-amber-500/50 text-sm transition-all duration-200"
                 >
                   {[1, 2, 3, 4, 5].map((q) => (
                     <option key={q} value={q}>{q}</option>
@@ -228,15 +256,15 @@ const PurchaseTicketPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="border-t border-neutral-800 pt-3 flex justify-between items-center font-semibold text-lg">
-                <span className="text-neutral-300">Total Price</span>
-                <span className="text-white">₹{ticketType.price * quantity}</span>
+              <div className="border-t border-white/[0.06] pt-3 flex justify-between items-center font-semibold text-lg">
+                <span className="text-zinc-300">Total Price</span>
+                <span className="text-amber-400 text-xl">₹{ticketType.price * quantity}</span>
               </div>
             </div>
           )}
 
           <Button
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-6 rounded-xl transition duration-200 cursor-pointer shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold py-6 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 relative z-10"
             onClick={handlePurchase}
             disabled={isProcessing || !ticketType}
           >
@@ -244,7 +272,7 @@ const PurchaseTicketPage: React.FC = () => {
             Pay Now
           </Button>
 
-          <div className="text-neutral-500 text-xs text-center">
+          <div className="text-zinc-500 text-xs text-center relative z-10">
             Transactions are encrypted. By clicking Pay Now, you agree to our terms.
           </div>
         </div>

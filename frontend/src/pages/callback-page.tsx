@@ -22,11 +22,16 @@ const CallbackPage: React.FC = () => {
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  if (isLoading) {
-    return <p>Processing login...</p>;
-  }
-
-  return <p>Completing login...</p>;
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+        <p className="text-sm text-zinc-400">
+          {isLoading ? "Processing login..." : "Completing login..."}
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default CallbackPage;

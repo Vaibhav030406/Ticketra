@@ -1,4 +1,3 @@
-import NavBar from "@/components/nav-bar";
 import { SimplePagination } from "@/components/simple-pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -13,12 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import {
   EventSummary,
   EventStatusEnum,
   SpringBootPagination,
@@ -27,6 +20,7 @@ import { deleteEvent, listEvents } from "@/lib/api";
 import {
   AlertCircle,
   Calendar,
+  CalendarDays,
   Clock,
   Edit,
   MapPin,
@@ -36,6 +30,10 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { Link } from "react-router";
+import PageHeader from "@/components/page-header";
+import StatusBadge from "@/components/status-badge";
+import EmptyState from "@/components/empty-state";
+import { cn } from "@/lib/utils";
 
 const DashboardListEventsPage: React.FC = () => {
   const { isLoading, user } = useAuth();
@@ -95,21 +93,6 @@ const DashboardListEventsPage: React.FC = () => {
     });
   };
 
-  const formatStatusBadge = (status: EventStatusEnum) => {
-    switch (status) {
-      case EventStatusEnum.DRAFT:
-        return "bg-gray-700 text-gray-200";
-      case EventStatusEnum.PUBLISHED:
-        return "bg-green-700 text-green-100";
-      case EventStatusEnum.CANCELLED:
-        return "bg-red-700 text-red-100";
-      case EventStatusEnum.COMPLETED:
-        return "bg-blue-700 text-blue-100";
-      default:
-        return "bg-gray-700 text-gray-200";
-    }
-  };
-
   const handleOpenDeleteEventDialog = (eventToDelete: EventSummary) => {
     setEventToDelete(undefined);
     setEventToDelete(eventToDelete);
@@ -144,10 +127,40 @@ const DashboardListEventsPage: React.FC = () => {
     }
   };
 
+  const getStatusVariant = (status: EventStatusEnum) => {
+    switch (status) {
+      case EventStatusEnum.DRAFT:
+        return "warning";
+      case EventStatusEnum.PUBLISHED:
+        return "success";
+      case EventStatusEnum.CANCELLED:
+        return "danger";
+      case EventStatusEnum.COMPLETED:
+        return "info";
+      default:
+        return "neutral";
+    }
+  };
+
+  const getStatusText = (status: EventStatusEnum) => {
+    switch (status) {
+      case EventStatusEnum.DRAFT:
+        return "Draft";
+      case EventStatusEnum.PUBLISHED:
+        return "Published";
+      case EventStatusEnum.CANCELLED:
+        return "Cancelled";
+      case EventStatusEnum.COMPLETED:
+        return "Completed";
+      default:
+        return status;
+    }
+  };
+
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <Alert variant="destructive" className="bg-gray-900 border-red-700">
+      <div className="backdrop-blur-xl bg-white/[0.03] border border-red-500/40 rounded-xl overflow-hidden m-4">
+        <Alert variant="destructive" className="bg-transparent border-none">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -157,136 +170,154 @@ const DashboardListEventsPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-black min-h-screen text-white">
-      <NavBar />
+    <div className="p-4 md:p-8 space-y-8">
+      <PageHeader title="Your Events" description="Manage your created events">
+        <Link to="/dashboard/events/create">
+          <Button className="bg-amber-500 text-zinc-950 hover:bg-amber-400 transition-all duration-200">
+            Create Event
+          </Button>
+        </Link>
+      </PageHeader>
 
-      <div className="max-w-lg mx-auto px-4">
-        {/* Title */}
-        <div className="py-8 px-4 flex justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Your Events</h1>
-            <p>Events you have created</p>
-          </div>
-          <div>
-            <Link to="/dashboard/events/create">
-              <Button className="bg-purple-700 hover:bg-purple-500 cursor-pointer">
-                Create Event
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Event Cards */}
-        <div className="space-y-2">
+      {events?.content.length === 0 ? (
+        <EmptyState
+          title="No events found"
+          description="You haven't created any events yet."
+          actionLabel="Create your first event"
+          actionHref="/dashboard/events/create"
+          icon={CalendarDays}
+        />
+      ) : (
+        <div className="space-y-4 max-w-3xl">
           {events?.content.map((eventItem) => (
-            <Card className="bg-gray-900 border-gray-700 text-white">
-              <CardHeader>
-                <div className="flex justify-between">
-                  <h3 className="font-bold text-xl">{eventItem.name}</h3>
-                  <span
-                    className={`flex items-center px-2 py-1 rounded-lg text-xs ${formatStatusBadge(eventItem.status)}`}
-                  >
-                    {eventItem.status}
-                  </span>
+            <div
+              key={eventItem.id}
+              className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.06] transition-all duration-200 overflow-hidden flex flex-col"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="font-semibold text-lg text-zinc-100">
+                    {eventItem.name}
+                  </h3>
+                  <StatusBadge variant={getStatusVariant(eventItem.status)}>
+                    {getStatusText(eventItem.status)}
+                  </StatusBadge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Event Start & End */}
-                <div className="flex space-x-2">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">
-                      {formatDate(eventItem.start)} to{" "}
-                      {formatDate(eventItem.end)}
-                    </p>
-                    <p className="text-gray-400">
-                      {formatTime(eventItem.start)} -{" "}
-                      {formatTime(eventItem.end)}
-                    </p>
+
+                <div className="grid gap-4 md:grid-cols-2 text-sm text-zinc-400">
+                  <div className="flex gap-3">
+                    <Calendar className="h-5 w-5 text-zinc-500 shrink-0" />
+                    <div>
+                      <p className="text-zinc-300">
+                        {formatDate(eventItem.start)} -{" "}
+                        {formatDate(eventItem.end)}
+                      </p>
+                      <p className="text-zinc-500 text-xs mt-0.5">
+                        {formatTime(eventItem.start)} -{" "}
+                        {formatTime(eventItem.end)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                {/* Sales start and end */}
-                <div className="flex space-x-2">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <h4 className="font-medium">Sales Period</h4>
-                    <p className="text-gray-400">
-                      {formatDate(eventItem.salesStart)} to{" "}
-                      {formatDate(eventItem.salesEnd)}
-                    </p>
+
+                  <div className="flex gap-3">
+                    <Clock className="h-5 w-5 text-zinc-500 shrink-0" />
+                    <div>
+                      <p className="font-medium text-zinc-300">Sales Period</p>
+                      <p className="text-zinc-500 text-xs mt-0.5">
+                        {formatDate(eventItem.salesStart)} to{" "}
+                        {formatDate(eventItem.salesEnd)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{eventItem.venue}</p>
+
+                  <div className="flex gap-3 md:col-span-2">
+                    <MapPin className="h-5 w-5 text-zinc-500 shrink-0" />
+                    <p className="text-zinc-300">{eventItem.venue}</p>
                   </div>
+
+                  {eventItem.ticketTypes.length > 0 && (
+                    <div className="flex gap-3 md:col-span-2 items-start mt-2">
+                      <Tag className="h-5 w-5 text-zinc-500 shrink-0" />
+                      <div className="flex flex-wrap gap-2">
+                        {eventItem.ticketTypes.map((ticketType) => (
+                          <span
+                            key={ticketType.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-900 border border-white/[0.06] text-zinc-300"
+                          >
+                            <span>{ticketType.name}</span>
+                            <span className="text-amber-500/80">
+                              ${ticketType.price}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Tag className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <h4 className="font-medium">Ticket Types</h4>
-                    <ul>
-                      {eventItem.ticketTypes.map((ticketType) => (
-                        <li
-                          key={ticketType.id}
-                          className="flex gap-2 text-gray-400"
-                        >
-                          <span>{ticketType.name}</span>
-                          <span>${ticketType.price}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
+              </div>
+
+              <div className="border-t border-white/[0.06] px-6 py-4 flex justify-end gap-2 mt-auto bg-black/20">
                 <Link to={`/dashboard/events/update/${eventItem.id}`}>
                   <Button
-                    type="button"
-                    className="bg-gray-700 hover:bg-gray-500 cursor-pointer"
+                    variant="ghost"
+                    size="sm"
+                    className="text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-all duration-200"
                   >
-                    <Edit />
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
                   </Button>
                 </Link>
                 <Button
-                  type="button"
-                  className="bg-red-700/80 hover:bg-red-500 cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  className="text-zinc-400 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
                   onClick={() => handleOpenDeleteEventDialog(eventItem)}
                 >
-                  <Trash />
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
-      <div className="flex justify-center py-8">
-        {events && (
+      )}
+
+      {events && events.content.length > 0 && (
+        <div className="flex justify-center py-8">
           <SimplePagination pagination={events} onPageChange={setPage} />
-        )}
-      </div>
-      <AlertDialog open={dialogOpen}>
-        <AlertDialogContent>
+        </div>
+      )}
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent className="bg-zinc-900 border-white/[0.06] text-zinc-100">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-zinc-400">
               This will delete your event '{eventToDelete?.name}' and cannot be
               undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleteEventError && (
-            <Alert variant="destructive" className="border-red-700">
+            <Alert
+              variant="destructive"
+              className="bg-red-950/20 border-red-900/50 text-red-400"
+            >
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{deleteEventError}</AlertDescription>
             </Alert>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelDeleteEventDialog}>
+            <AlertDialogCancel
+              onClick={handleCancelDeleteEventDialog}
+              className="bg-transparent border-white/[0.1] text-zinc-300 hover:bg-white/[0.05] hover:text-white transition-all duration-200"
+            >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteEvent()}>
+            <AlertDialogAction
+              onClick={() => handleDeleteEvent()}
+              className="bg-red-500 text-white hover:bg-red-600 transition-all duration-200"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>
