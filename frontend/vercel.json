@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://pretty-friendship-production-5c55.up.railway.app/api/:match*"
+    }
+  ]
+}
