@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useParams, Link } from "react-router";
 import StatusBadge from "@/components/status-badge";
-import { cn } from "@/lib/utils";
 
 const DashboardViewTicketPage: React.FC = () => {
   const [ticket, setTicket] = useState<TicketDetails | undefined>();

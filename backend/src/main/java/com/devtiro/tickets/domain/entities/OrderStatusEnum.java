@@ -1,5 +1,5 @@
 package com.devtiro.tickets.domain.entities;
 
 public enum OrderStatusEnum {
-  PENDING, PAID, FAILED, EXPIRED, CANCELLED, REFUNDED
+  PENDING, PAID, FAILED, EXPIRED, CANCELLED, REFUNDED, REFUND_FAILED
 }

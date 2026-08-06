@@ -4,9 +4,10 @@ import "./index.css";
 import AttendeeLandingPage from "./pages/attendee-landing-page.tsx";
 import { AuthProvider } from "react-oidc-context";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router";
-import OrganizersLandingPage from "./pages/organizers-landing-page.tsx";
 import DashboardManageEventPage from "./pages/dashboard-manage-event-page.tsx";
+import DashboardEventAnalyticsPage from "./pages/dashboard-event-analytics-page.tsx";
 import LoginPage from "./pages/login-page.tsx";
+import RegisterPage from "./pages/register-page.tsx";
 import ProtectedRoute from "./components/protected-route.tsx";
 import CallbackPage from "./pages/callback-page.tsx";
 import DashboardListEventsPage from "./pages/dashboard-list-events-page.tsx";
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
     Component: LoginPage,
   },
   {
+    path: "/register",
+    Component: RegisterPage,
+  },
+  {
     path: "/events/:id",
     Component: PublishedEventsPage,
   },
@@ -50,10 +55,6 @@ const router = createBrowserRouter([
         <PurchaseTicketPage />
       </ProtectedRoute>
     ),
-  },
-  {
-    path: "/organizers",
-    Component: OrganizersLandingPage,
   },
   {
     path: "/dashboard",
@@ -74,6 +75,11 @@ const router = createBrowserRouter([
       {
         path: "events/update/:id",
         Component: DashboardManageEventPage,
+      },
+      {
+        // Organizer-only analytics page — the page itself redirects non-organizers.
+        path: "events/:id/analytics",
+        Component: DashboardEventAnalyticsPage,
       },
       {
         path: "tickets",

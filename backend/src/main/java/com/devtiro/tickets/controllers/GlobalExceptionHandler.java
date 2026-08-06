@@ -12,7 +12,12 @@ import com.devtiro.tickets.exceptions.UserNotFoundException;
 import com.devtiro.tickets.exceptions.OrderNotFoundException;
 import com.devtiro.tickets.exceptions.DuplicateOrderException;
 import com.devtiro.tickets.exceptions.InvalidOrderException;
+import com.devtiro.tickets.exceptions.DuplicateStaffInviteException;
+import com.devtiro.tickets.exceptions.EmailSendException;
 import com.devtiro.tickets.exceptions.InvalidWebhookSignatureException;
+import com.devtiro.tickets.exceptions.KeycloakAdminException;
+import com.devtiro.tickets.exceptions.NotEventStaffException;
+import com.devtiro.tickets.exceptions.UserAlreadyExistsException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -95,6 +100,15 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
   }
 
+  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorDto> handleDataIntegrityViolationException(
+      org.springframework.dao.DataIntegrityViolationException ex) {
+    log.error("Caught DataIntegrityViolationException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError("This user is already staff for this event");
+    return new ResponseEntity<>(errorDto, HttpStatus.CONFLICT);
+  }
+
   @ExceptionHandler(com.devtiro.tickets.exceptions.StaffNotAssignedToEventException.class)
   public ResponseEntity<ErrorDto> handleStaffNotAssignedToEventException(
       com.devtiro.tickets.exceptions.StaffNotAssignedToEventException ex) {
@@ -102,6 +116,47 @@ public class GlobalExceptionHandler {
     ErrorDto errorDto = new ErrorDto();
     errorDto.setError(ex.getMessage() != null ? ex.getMessage() : "Staff member is not assigned to this event");
     return new ResponseEntity<>(errorDto, HttpStatus.FORBIDDEN);
+  }
+
+  @ExceptionHandler(NotEventStaffException.class)
+  public ResponseEntity<ErrorDto> handleNotEventStaffException(NotEventStaffException ex) {
+    log.error("Caught NotEventStaffException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage());
+    return new ResponseEntity<>(errorDto, HttpStatus.FORBIDDEN);
+  }
+
+  @ExceptionHandler(UserAlreadyExistsException.class)
+  public ResponseEntity<ErrorDto> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+    log.error("Caught UserAlreadyExistsException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage());
+    return new ResponseEntity<>(errorDto, HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(KeycloakAdminException.class)
+  public ResponseEntity<ErrorDto> handleKeycloakAdminException(KeycloakAdminException ex) {
+    log.error("Caught KeycloakAdminException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage());
+    return new ResponseEntity<>(errorDto, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  @ExceptionHandler(DuplicateStaffInviteException.class)
+  public ResponseEntity<ErrorDto> handleDuplicateStaffInviteException(
+      DuplicateStaffInviteException ex) {
+    log.error("Caught DuplicateStaffInviteException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError(ex.getMessage());
+    return new ResponseEntity<>(errorDto, HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(EmailSendException.class)
+  public ResponseEntity<ErrorDto> handleEmailSendException(EmailSendException ex) {
+    log.error("Caught EmailSendException", ex);
+    ErrorDto errorDto = new ErrorDto();
+    errorDto.setError("The invite was processed, but the notification email failed to send");
+    return new ResponseEntity<>(errorDto, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

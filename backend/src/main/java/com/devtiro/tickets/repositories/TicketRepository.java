@@ -1,6 +1,7 @@
 package com.devtiro.tickets.repositories;
 
 import com.devtiro.tickets.domain.entities.Ticket;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -16,4 +17,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
   Page<Ticket> findByPurchaserId(UUID purchaserId, Pageable pageable);
 
   Optional<Ticket> findByIdAndPurchaserId(UUID id, UUID purchaserId);
+
+  // Used during event cancellation to bulk-cancel all tickets for a given order.
+  List<Ticket> findByOrderId(UUID orderId);
 }

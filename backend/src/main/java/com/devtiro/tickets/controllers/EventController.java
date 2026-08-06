@@ -6,6 +6,7 @@ import com.devtiro.tickets.domain.CreateEventRequest;
 import com.devtiro.tickets.domain.UpdateEventRequest;
 import com.devtiro.tickets.domain.dtos.CreateEventRequestDto;
 import com.devtiro.tickets.domain.dtos.CreateEventResponseDto;
+import com.devtiro.tickets.domain.dtos.EventAnalyticsResponseDto;
 import com.devtiro.tickets.domain.dtos.GetEventDetailsResponseDto;
 import com.devtiro.tickets.domain.dtos.ListEventResponseDto;
 import com.devtiro.tickets.domain.dtos.UpdateEventRequestDto;
@@ -102,43 +103,31 @@ public class EventController {
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping(path = "/{eventId}/staff")
-  public ResponseEntity<com.devtiro.tickets.domain.dtos.StaffUserResponseDto> addStaff(
+  /**
+   * Cancels the event and auto-refunds all PAID orders via Razorpay (best-effort).
+   * Idempotent — safe to call if the event is already CANCELLED.
+   */
+  @PostMapping(path = "/{eventId}/cancel")
+  public ResponseEntity<UpdateEventResponseDto> cancelEvent(
       @AuthenticationPrincipal Jwt jwt,
-      @PathVariable UUID eventId,
-      @Valid @RequestBody com.devtiro.tickets.domain.dtos.AddStaffRequestDto addStaffRequestDto) {
+      @PathVariable UUID eventId
+  ) {
     UUID userId = parseUserId(jwt);
-    Event updatedEvent = eventService.addStaffToEvent(userId, eventId, addStaffRequestDto.getEmail());
-
-    com.devtiro.tickets.domain.entities.User addedStaff = updatedEvent.getStaff().stream()
-        .filter(u -> u.getEmail().equalsIgnoreCase(addStaffRequestDto.getEmail()))
-        .findFirst()
-        .orElseThrow();
-
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(new com.devtiro.tickets.domain.dtos.StaffUserResponseDto(
-            addedStaff.getId(), addedStaff.getName(), addedStaff.getEmail()));
+    Event cancelledEvent = eventService.cancelEvent(userId, eventId);
+    return ResponseEntity.ok(eventMapper.toUpdateEventResponseDto(cancelledEvent));
   }
 
-  @DeleteMapping(path = "/{eventId}/staff/{staffUserId}")
-  public ResponseEntity<Void> removeStaff(
+  /**
+   * Returns sales analytics for the event: tickets sold per type, revenue,
+   * and remaining capacity. Organizer-only endpoint.
+   */
+  @GetMapping(path = "/{eventId}/analytics")
+  public ResponseEntity<EventAnalyticsResponseDto> getEventAnalytics(
       @AuthenticationPrincipal Jwt jwt,
-      @PathVariable UUID eventId,
-      @PathVariable UUID staffUserId) {
+      @PathVariable UUID eventId
+  ) {
     UUID userId = parseUserId(jwt);
-    eventService.removeStaffFromEvent(userId, eventId, staffUserId);
-    return ResponseEntity.noContent().build();
-  }
-
-  @GetMapping(path = "/{eventId}/staff")
-  public ResponseEntity<java.util.List<com.devtiro.tickets.domain.dtos.StaffUserResponseDto>> listStaff(
-      @AuthenticationPrincipal Jwt jwt,
-      @PathVariable UUID eventId) {
-    UUID userId = parseUserId(jwt);
-    java.util.List<com.devtiro.tickets.domain.entities.User> staffList = eventService.listStaffForEvent(userId, eventId);
-    java.util.List<com.devtiro.tickets.domain.dtos.StaffUserResponseDto> response = staffList.stream()
-        .map(u -> new com.devtiro.tickets.domain.dtos.StaffUserResponseDto(u.getId(), u.getName(), u.getEmail()))
-        .toList();
-    return ResponseEntity.ok(response);
+    EventAnalyticsResponseDto analytics = eventService.getEventAnalytics(userId, eventId);
+    return ResponseEntity.ok(analytics);
   }
 }

@@ -3,8 +3,14 @@ package com.devtiro.tickets.services.impl;
 import com.devtiro.tickets.domain.CreateEventRequest;
 import com.devtiro.tickets.domain.UpdateEventRequest;
 import com.devtiro.tickets.domain.UpdateTicketTypeRequest;
+import com.devtiro.tickets.domain.dtos.EventAnalyticsResponseDto;
+import com.devtiro.tickets.domain.dtos.TicketTypeSalesDto;
 import com.devtiro.tickets.domain.entities.Event;
 import com.devtiro.tickets.domain.entities.EventStatusEnum;
+import com.devtiro.tickets.domain.entities.Order;
+import com.devtiro.tickets.domain.entities.OrderStatusEnum;
+import com.devtiro.tickets.domain.entities.Ticket;
+import com.devtiro.tickets.domain.entities.TicketStatusEnum;
 import com.devtiro.tickets.domain.entities.TicketType;
 import com.devtiro.tickets.domain.entities.User;
 import com.devtiro.tickets.exceptions.EventNotFoundException;
@@ -12,9 +18,16 @@ import com.devtiro.tickets.exceptions.EventUpdateException;
 import com.devtiro.tickets.exceptions.TicketTypeNotFoundException;
 import com.devtiro.tickets.exceptions.UserNotFoundException;
 import com.devtiro.tickets.repositories.EventRepository;
+import com.devtiro.tickets.repositories.OrderRepository;
+import com.devtiro.tickets.repositories.TicketRepository;
 import com.devtiro.tickets.repositories.UserRepository;
 import com.devtiro.tickets.services.EventService;
+import com.devtiro.tickets.services.NotificationService;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,16 +37,23 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EventServiceImpl implements EventService {
 
   private final UserRepository userRepository;
   private final EventRepository eventRepository;
+  private final OrderRepository orderRepository;
+  private final TicketRepository ticketRepository;
+  private final RazorpayClient razorpayClient;
+  private final NotificationService notificationService;
 
   @Override
   @Transactional
@@ -119,7 +139,6 @@ public class EventServiceImpl implements EventService {
 
     for (UpdateTicketTypeRequest ticketType : event.getTicketTypes()) {
       if (null == ticketType.getId()) {
-        // Create
         TicketType ticketTypeToCreate = new TicketType();
         ticketTypeToCreate.setName(ticketType.getName());
         ticketTypeToCreate.setPrice(ticketType.getPrice());
@@ -129,7 +148,6 @@ public class EventServiceImpl implements EventService {
         existingEvent.getTicketTypes().add(ticketTypeToCreate);
 
       } else if (existingTicketTypesIndex.containsKey(ticketType.getId())) {
-        // Update
         TicketType existingTicketType = existingTicketTypesIndex.get(ticketType.getId());
         existingTicketType.setName(ticketType.getName());
         existingTicketType.setPrice(ticketType.getPrice());
@@ -211,5 +229,131 @@ public class EventServiceImpl implements EventService {
     Event event = getEventForOrganizer(organizerId, eventId)
         .orElseThrow(EventNotFoundException::new);
     return event.getStaff();
+  }
+
+  // -------------------------------------------------------------------------
+  // Cancellation flow
+  // -------------------------------------------------------------------------
+
+  @Override
+  @Transactional
+  public Event cancelEvent(UUID organizerId, UUID eventId) {
+    Event event = getEventForOrganizer(organizerId, eventId)
+        .orElseThrow(() -> new EventNotFoundException(
+            String.format("Event with ID '%s' was not found", eventId)));
+
+    // Idempotent -- already cancelled, nothing to do.
+    if (event.getStatus() == EventStatusEnum.CANCELLED) {
+      log.info("Event {} is already CANCELLED, skipping.", eventId);
+      return event;
+    }
+
+    // Only PUBLISHED or DRAFT events can be cancelled via this flow.
+    if (event.getStatus() != EventStatusEnum.PUBLISHED
+        && event.getStatus() != EventStatusEnum.DRAFT) {
+      throw new EventUpdateException(
+          "Only PUBLISHED or DRAFT events can be cancelled. Current status: " + event.getStatus());
+    }
+
+    // Fetch all PAID orders for this event across all ticket types.
+    List<Order> paidOrders = orderRepository
+        .findByTicketType_Event_IdAndStatus(eventId, OrderStatusEnum.PAID);
+
+    log.info("Cancelling event '{}' (id={}): {} PAID order(s) to refund.",
+        event.getName(), eventId, paidOrders.size());
+
+    // Track unique attendee emails for stub notifications (deduplicated).
+    Set<String> notifiedEmails = new HashSet<>();
+
+    for (Order order : paidOrders) {
+      // --- best-effort Razorpay refund ---
+      try {
+        JSONObject refundParams = new JSONObject();
+        // Razorpay expects amount in paise (1 INR = 100 paise).
+        refundParams.put("amount", (int) Math.round(order.getTotalAmount() * 100));
+
+        razorpayClient.payments.refund(order.getRazorpayPaymentId(), refundParams);
+
+        order.setStatus(OrderStatusEnum.REFUNDED);
+        log.info("Refunded order {} (Razorpay payment {}).",
+            order.getId(), order.getRazorpayPaymentId());
+
+      } catch (RazorpayException e) {
+        // Non-blocking: log the failure and mark the order so ops can retry.
+        log.error("Razorpay refund failed for order {} (payment {}): {}",
+            order.getId(), order.getRazorpayPaymentId(), e.getMessage(), e);
+        order.setStatus(OrderStatusEnum.REFUND_FAILED);
+      }
+
+      // Cancel all tickets on this order regardless of refund outcome.
+      List<Ticket> tickets = ticketRepository.findByOrderId(order.getId());
+      tickets.forEach(ticket -> ticket.setStatus(TicketStatusEnum.CANCELLED));
+      ticketRepository.saveAll(tickets);
+      orderRepository.save(order);
+
+      // Collect attendee email for stub notification.
+      if (order.getPurchaser() != null
+          && order.getPurchaser().getEmail() != null
+          && notifiedEmails.add(order.getPurchaser().getEmail())) {
+        notificationService.sendEventCancellationEmail(
+            order.getPurchaser().getEmail(), event);
+      }
+    }
+
+    event.setStatus(EventStatusEnum.CANCELLED);
+    Event savedEvent = eventRepository.save(event);
+
+    log.info("Event '{}' (id={}) successfully marked CANCELLED. {}/{} orders refunded.",
+        event.getName(), eventId,
+        paidOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.REFUNDED).count(),
+        paidOrders.size());
+
+    return savedEvent;
+  }
+
+  // -------------------------------------------------------------------------
+  // Organizer analytics
+  // -------------------------------------------------------------------------
+
+  @Override
+  public EventAnalyticsResponseDto getEventAnalytics(UUID organizerId, UUID eventId) {
+    Event event = getEventForOrganizer(organizerId, eventId)
+        .orElseThrow(() -> new EventNotFoundException(
+            String.format("Event with ID '%s' was not found", eventId)));
+
+    List<TicketTypeSalesDto> breakdown = new ArrayList<>();
+    double totalRevenue = 0.0;
+    int totalSold = 0;
+    int totalCapacity = 0;
+
+    for (TicketType ticketType : event.getTicketTypes()) {
+      int sold = ticketRepository.countByTicketTypeId(ticketType.getId());
+      int available = ticketType.getTotalAvailable() != null ? ticketType.getTotalAvailable() : 0;
+      int remaining = Math.max(0, available - sold);
+      double revenue = sold * ticketType.getPrice();
+
+      breakdown.add(TicketTypeSalesDto.builder()
+          .ticketTypeId(ticketType.getId())
+          .ticketTypeName(ticketType.getName())
+          .price(ticketType.getPrice())
+          .totalAvailable(available)
+          .soldCount(sold)
+          .remainingCapacity(remaining)
+          .revenue(revenue)
+          .build());
+
+      totalRevenue += revenue;
+      totalSold += sold;
+      totalCapacity += available;
+    }
+
+    return EventAnalyticsResponseDto.builder()
+        .eventId(event.getId())
+        .eventName(event.getName())
+        .totalRevenue(totalRevenue)
+        .totalSold(totalSold)
+        .totalCapacity(totalCapacity)
+        .ticketTypeBreakdown(breakdown)
+        .build();
   }
 }

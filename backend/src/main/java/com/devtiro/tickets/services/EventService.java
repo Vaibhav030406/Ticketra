@@ -2,6 +2,7 @@ package com.devtiro.tickets.services;
 
 import com.devtiro.tickets.domain.CreateEventRequest;
 import com.devtiro.tickets.domain.UpdateEventRequest;
+import com.devtiro.tickets.domain.dtos.EventAnalyticsResponseDto;
 import com.devtiro.tickets.domain.entities.Event;
 import com.devtiro.tickets.domain.entities.User;
 import java.util.List;
@@ -33,4 +34,16 @@ public interface EventService {
   Event removeStaffFromEvent(UUID organizerId, UUID eventId, UUID staffUserId);
 
   List<User> listStaffForEvent(UUID organizerId, UUID eventId);
+
+  /**
+   * Cancels the event: refunds all PAID orders (best-effort via Razorpay),
+   * marks tickets/orders CANCELLED/REFUNDED, stubs attendee notifications.
+   */
+  Event cancelEvent(UUID organizerId, UUID eventId);
+
+  /**
+   * Returns ticket-sales analytics for the event (sold count, capacity,
+   * revenue per ticket type and totals).
+   */
+  EventAnalyticsResponseDto getEventAnalytics(UUID organizerId, UUID eventId);
 }

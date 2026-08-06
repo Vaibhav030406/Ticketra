@@ -1,5 +1,6 @@
 import {
   CreateEventRequest,
+  EventAnalytics,
   EventDetails,
   EventSummary,
   isErrorResponse,
@@ -13,6 +14,7 @@ import {
   TicketValidationResponse,
   UpdateEventRequest,
   StaffUserResponse,
+  RegisterUserRequest,
 } from "@/domain/domain";
 
 export const createEvent = async (
@@ -400,11 +402,32 @@ export const getOrder = async (
   return responseBody as OrderResponse;
 };
 
+export const registerUser = async (
+  request: RegisterUserRequest,
+): Promise<void> => {
+  const response = await fetch("/api/v1/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.json().catch(() => ({}));
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      throw new Error("Registration failed. Please try again.");
+    }
+  }
+};
+
 export const addEventStaff = async (
   accessToken: string,
   eventId: string,
   email: string
-): Promise<StaffUserResponse> => {
+): Promise<void> => {
   const response = await fetch(`/api/v1/events/${eventId}/staff`, {
     method: "POST",
     headers: {
@@ -414,17 +437,14 @@ export const addEventStaff = async (
     body: JSON.stringify({ email }),
   });
 
-  const responseBody = await response.json();
-
   if (!response.ok) {
+    const responseBody = await response.json().catch(() => ({}));
     if (isErrorResponse(responseBody)) {
       throw new Error(responseBody.error);
     } else {
       throw new Error("Failed to add staff member");
     }
   }
-
-  return responseBody as StaffUserResponse;
 };
 
 export const removeEventStaff = async (
@@ -466,4 +486,58 @@ export const listEventStaff = async (
   }
 
   return responseBody as StaffUserResponse[];
+};
+
+/**
+ * Cancels the event and triggers best-effort Razorpay refunds for all PAID orders.
+ * Returns the updated event (status will be CANCELLED).
+ */
+export const cancelEvent = async (
+  accessToken: string,
+  eventId: string,
+): Promise<void> => {
+  const response = await fetch(`/api/v1/events/${eventId}/cancel`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.json().catch(() => ({}));
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      throw new Error("Failed to cancel event");
+    }
+  }
+};
+
+/**
+ * Returns ticket-sales analytics for an event: sold count, remaining capacity,
+ * revenue per ticket type and aggregated totals.
+ */
+export const getEventAnalytics = async (
+  accessToken: string,
+  eventId: string,
+): Promise<EventAnalytics> => {
+  const response = await fetch(`/api/v1/events/${eventId}/analytics`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    if (isErrorResponse(responseBody)) {
+      throw new Error(responseBody.error);
+    } else {
+      throw new Error("Failed to load event analytics");
+    }
+  }
+
+  return responseBody as EventAnalytics;
 };

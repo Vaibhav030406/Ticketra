@@ -35,7 +35,12 @@ const OrganizersLandingPage: React.FC = () => {
                 <Button onClick={() => signoutRedirect()} variant="outline" className="text-sm border-white/[0.1] text-zinc-300 hover:bg-white/[0.05] cursor-pointer transition-all duration-200">Log out</Button>
               </div>
             ) : (
-              <Button onClick={() => signinRedirect()} className="bg-amber-500 text-zinc-950 hover:bg-amber-400 text-sm font-medium cursor-pointer transition-all duration-200">Sign In</Button>
+              <div className="flex items-center gap-3">
+                <Link to="/register">
+                  <Button variant="outline" className="text-sm border-white/[0.1] text-zinc-300 hover:bg-white/[0.05] cursor-pointer transition-all duration-200">Sign Up</Button>
+                </Link>
+                <Button onClick={() => signinRedirect()} className="bg-amber-500 text-zinc-950 hover:bg-amber-400 text-sm font-medium cursor-pointer transition-all duration-200">Sign In</Button>
+              </div>
             )}
           </div>
         </div>

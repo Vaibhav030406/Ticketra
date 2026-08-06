@@ -35,19 +35,19 @@ const DashboardLayout: React.FC<SidebarProps> = ({ children }) => {
       label: "Events",
       icon: <CalendarDays className="w-5 h-5" />,
       href: "/dashboard/events",
-      visible: isOrganizer,
+      visible: true,
     },
     {
       label: "My Tickets",
       icon: <Ticket className="w-5 h-5" />,
       href: "/dashboard/tickets",
-      visible: !isOrganizer && !isStaff,
+      visible: true,
     },
     {
-      label: "Scanner",
+      label: "QR Scanner",
       icon: <ScanLine className="w-5 h-5" />,
       href: "/dashboard/validate-qr",
-      visible: isStaff,
+      visible: isStaff || isOrganizer,
     },
   ];
 

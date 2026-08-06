@@ -4,6 +4,7 @@ import com.devtiro.tickets.domain.entities.Order;
 import com.devtiro.tickets.domain.entities.OrderStatusEnum;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +39,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
       @Param("expiredStatus") OrderStatusEnum expiredStatus,
       @Param("now") LocalDateTime now
   );
+
+  // Fetch all orders for a given event + status — used to gather PAID orders during event cancellation.
+  List<Order> findByTicketType_Event_IdAndStatus(UUID eventId, OrderStatusEnum status);
 }

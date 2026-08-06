@@ -14,7 +14,6 @@ import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
 import EmptyState from "@/components/empty-state";
 import { Ticket as TicketIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const DashboardListTickets: React.FC = () => {
   const { isLoading, user } = useAuth();
@@ -83,7 +82,7 @@ const DashboardListTickets: React.FC = () => {
           description="Browse events to get started"
           actionLabel="Browse events"
           actionHref="/"
-          icon={TicketIcon}
+          icon={<TicketIcon className="w-7 h-7 text-zinc-500" />}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl">

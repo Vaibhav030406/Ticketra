@@ -57,7 +57,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams, Link } from "react-router";
 import PageHeader from "@/components/page-header";
-import { cn } from "@/lib/utils";
 
 interface DateTimeSelectProperties {
   date: Date | undefined;
@@ -256,8 +255,9 @@ const DashboardManageEventPage: React.FC = () => {
     if (!id || !user?.access_token || !staffEmailInput.trim()) return;
     try {
       setStaffError(undefined);
-      const newStaff = await addEventStaff(user.access_token, id, staffEmailInput.trim());
-      setStaffList((prev) => [...prev.filter((s) => s.id !== newStaff.id), newStaff]);
+      await addEventStaff(user.access_token, id, staffEmailInput.trim());
+      const updatedStaff = await listEventStaff(user.access_token, id);
+      setStaffList(updatedStaff);
       setStaffEmailInput("");
     } catch (err: any) {
       setStaffError(err.message || "Failed to add staff member");
@@ -846,17 +846,22 @@ const DashboardManageEventPage: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={currentTicketType?.price}
-                  onChange={(e) =>
+                  value={
+                    currentTicketType?.price !== undefined && !Number.isNaN(currentTicketType.price)
+                      ? currentTicketType.price
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
                     setCurrentTicketType(
                       currentTicketType
                         ? {
                             ...currentTicketType,
-                            price: Number.parseFloat(e.target.value),
+                            price: val === "" ? 0 : Number.parseFloat(val) || 0,
                           }
                         : undefined,
-                    )
-                  }
+                    );
+                  }}
                   className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50"
                 />
               </div>
@@ -872,17 +877,22 @@ const DashboardManageEventPage: React.FC = () => {
                   id="ticket-type-total-available"
                   type="number"
                   min="0"
-                  value={currentTicketType?.totalAvailable}
-                  onChange={(e) =>
+                  value={
+                    currentTicketType?.totalAvailable !== undefined && !Number.isNaN(currentTicketType.totalAvailable)
+                      ? currentTicketType.totalAvailable
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
                     setCurrentTicketType(
                       currentTicketType
                         ? {
                             ...currentTicketType,
-                            totalAvailable: Number.parseFloat(e.target.value),
+                            totalAvailable: val === "" ? 0 : Number.parseInt(val, 10) || 0,
                           }
                         : undefined,
-                    )
-                  }
+                    );
+                  }}
                   className="bg-zinc-900/50 border-white/[0.08] focus-visible:ring-amber-500/50"
                 />
               </div>

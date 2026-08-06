@@ -39,11 +39,10 @@ export const useRoles = (): UseRolesReturn => {
     try {
       const payload = jwtDecode<JwtPayload>(user?.access_token);
       const allRoles = payload.realm_access?.roles || [];
-      const filteredRoles = allRoles.filter((role) => role.startsWith("ROLE_"));
-      setRoles(filteredRoles);
-      setIsOrganizer(filteredRoles.includes("ROLE_ORGANIZER"));
-      setIsAttendee(filteredRoles.includes("ROLE_ATTENDEE"));
-      setIsStaff(filteredRoles.includes("ROLE_STAFF"));
+      setRoles(allRoles);
+      setIsOrganizer(allRoles.includes("ORGANIZER") || allRoles.includes("ROLE_ORGANIZER"));
+      setIsAttendee(allRoles.includes("ATTENDEE") || allRoles.includes("ROLE_ATTENDEE"));
+      setIsStaff(allRoles.includes("STAFF") || allRoles.includes("ROLE_STAFF"));
     } catch (error) {
       console.error("Error parsing JWT: " + error);
       setRoles([]);

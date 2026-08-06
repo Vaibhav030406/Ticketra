@@ -96,14 +96,19 @@ const AttendeeLandingPage: React.FC = () => {
           </Link>
           <div className="flex items-center gap-6">
             <Link to="/" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors duration-200">Browse Events</Link>
-            <Link to="/organizers" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors duration-200">For Organizers</Link>
+            <Link to="/dashboard/events/create" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors duration-200">Create Event</Link>
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Button onClick={() => navigate("/dashboard")} variant="ghost" className="text-sm text-zinc-300 hover:text-zinc-100 cursor-pointer transition-all duration-200 hover:bg-white/[0.06]">Dashboard</Button>
                 <Button onClick={() => signoutRedirect()} variant="outline" className="text-sm border-white/[0.1] text-zinc-300 hover:bg-white/[0.05] cursor-pointer transition-all duration-200">Log out</Button>
               </div>
             ) : (
-              <Button onClick={() => signinRedirect()} className="bg-amber-500 text-zinc-950 hover:bg-amber-400 text-sm font-medium cursor-pointer transition-all duration-200">Sign In</Button>
+              <div className="flex items-center gap-3">
+                <Link to="/register">
+                  <Button variant="outline" className="text-sm border-white/[0.1] text-zinc-300 hover:bg-white/[0.05] cursor-pointer transition-all duration-200">Sign Up</Button>
+                </Link>
+                <Button onClick={() => signinRedirect()} className="bg-amber-500 text-zinc-950 hover:bg-amber-400 text-sm font-medium cursor-pointer transition-all duration-200">Sign In</Button>
+              </div>
             )}
           </div>
         </div>

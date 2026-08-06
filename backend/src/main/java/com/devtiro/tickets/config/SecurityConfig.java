@@ -23,8 +23,8 @@ public class SecurityConfig {
             authorize
                 .requestMatchers(HttpMethod.GET, "/api/v1/published-events/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
-                .requestMatchers("/api/v1/events").hasRole("ORGANIZER")
-                .requestMatchers("/api/v1/ticket-validations").hasRole("STAFF")
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                .requestMatchers("/api/v1/ticket-validations").authenticated()
                 // Catch all rule
                 .anyRequest().authenticated())
         .csrf(csrf -> csrf.disable())

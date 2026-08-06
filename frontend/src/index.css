@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -89,13 +89,20 @@
 
 /* Glassmorphism card utility */
 .glass-card {
-  @apply backdrop-blur-xl border rounded-xl;
+  backdrop-filter: blur(24px);
+  border-width: 1px;
+  border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 .glass-card-hover {
-  @apply glass-card transition-all duration-200;
+  backdrop-filter: blur(24px);
+  border-width: 1px;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  transition: all 200ms ease-in-out;
 }
 .glass-card-hover:hover {
   background: rgba(255, 255, 255, 0.06);

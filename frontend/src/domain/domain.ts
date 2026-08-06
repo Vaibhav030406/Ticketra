@@ -167,6 +167,7 @@ export interface TicketSummary {
   id: string;
   status: TicketStatus;
   ticketType: TicketSummaryTicketType;
+  eventName?: string;
 }
 
 export interface TicketDetails {
@@ -216,6 +217,7 @@ export enum OrderStatus {
   EXPIRED = "EXPIRED",
   CANCELLED = "CANCELLED",
   REFUNDED = "REFUNDED",
+  REFUND_FAILED = "REFUND_FAILED",
 }
 
 export interface OrderResponse {
@@ -230,3 +232,29 @@ export interface OrderResponse {
   expiresAt: string;
   createdAt: string;
 }
+
+export interface RegisterUserRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface TicketTypeSales {
+  ticketTypeId: string;
+  ticketTypeName: string;
+  price: number;
+  totalAvailable: number;
+  soldCount: number;
+  remainingCapacity: number;
+  revenue: number;
+}
+
+export interface EventAnalytics {
+  eventId: string;
+  eventName: string;
+  totalRevenue: number;
+  totalSold: number;
+  totalCapacity: number;
+  ticketTypeBreakdown: TicketTypeSales[];
+}
+
