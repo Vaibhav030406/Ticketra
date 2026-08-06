@@ -11,6 +11,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import com.devtiro.tickets.domain.entities.Order;
+import com.devtiro.tickets.domain.entities.Ticket;
+import com.devtiro.tickets.domain.entities.User;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.core.io.ByteArrayResource;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +71,53 @@ public class NotificationServiceImpl implements NotificationService {
         "STUB [Ph2]: Would send event cancellation email to '{}' for event '{}' (id={}). Wire up in Ph3.",
         toEmail, event.getName(), event.getId()
     );
+  }
+
+  @Override
+  public void sendOrderConfirmationEmail(
+          User purchaser,
+          Order order,
+          List<Ticket> tickets,
+          Map<UUID, byte[]> qrCodeImagesByTicketId
+  ) {
+    var event = order.getTicketType().getEvent();
+    String subject = String.format("Your tickets for %s are confirmed!", event.getName());
+
+    String eventDate = event.getStart() != null ? event.getStart().toString() : "To be announced";
+
+    String body = String.format(
+            "<p>Hi %s,</p>"
+                    + "<p>Your order for <strong>%d ticket(s)</strong> to <strong>%s</strong> is confirmed.</p>"
+                    + "<p><strong>Venue:</strong> %s<br/>"
+                    + "<strong>Date:</strong> %s</p>"
+                    + "<p>Your QR code(s) are attached to this email — have them ready for scanning at the door.</p>"
+                    + "<p><a href=\"%s\">View your tickets</a></p>",
+            purchaser.getName(), tickets.size(), event.getName(), event.getVenue(), eventDate, frontendUrl
+    );
+
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true);
+      helper.setFrom(fromAddress);
+      helper.setTo(purchaser.getEmail());
+      helper.setSubject(subject);
+      helper.setText(body, true);
+
+      int i = 1;
+      for (Ticket ticket : tickets) {
+        byte[] qrImage = qrCodeImagesByTicketId.get(ticket.getId());
+        if (qrImage != null) {
+          helper.addAttachment("ticket-" + i + "-qr.png", new ByteArrayResource(qrImage));
+        }
+        i++;
+      }
+
+      mailSender.send(message);
+    } catch (Exception e) {
+      // Same pattern as the rest of this class: a failed email must never
+      // undo the already-confirmed order/tickets.
+      log.warn("Failed to send order confirmation email to {}: {}", purchaser.getEmail(), e.getMessage());
+    }
   }
 
   private void send(String toEmail, String subject, String htmlBody) {

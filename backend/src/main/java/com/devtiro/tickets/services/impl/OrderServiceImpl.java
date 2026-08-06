@@ -34,6 +34,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.devtiro.tickets.domain.entities.QrCode;
+import com.devtiro.tickets.services.NotificationService;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
   private final OrderRepository orderRepository;
   private final RazorpayClient razorpayClient;
   private final QrCodeService qrCodeService;
+  private final NotificationService notificationService;
 
   @Value("${razorpay.webhook.secret}")
   private String webhookSecret;
@@ -217,6 +225,9 @@ public class OrderServiceImpl implements OrderService {
     order.setStatus(OrderStatusEnum.PAID);
     order.setRazorpayPaymentId(razorpayPaymentId);
 
+    List<Ticket> createdTickets = new ArrayList<>();
+    Map<UUID, byte[]> qrImagesByTicketId = new HashMap<>();
+
     // One Ticket (and one QR code) per unit of quantity — each attendee in a
     // group purchase gets their own scannable ticket at the door.
     for (int i = 0; i < order.getQuantity(); i++) {
@@ -227,10 +238,17 @@ public class OrderServiceImpl implements OrderService {
       ticket.setOrder(order);
 
       Ticket savedTicket = ticketRepository.save(ticket);
-      qrCodeService.generateQrCode(savedTicket);
+      QrCode qrCode = qrCodeService.generateQrCode(savedTicket);
+
+      createdTickets.add(savedTicket);
+      qrImagesByTicketId.put(savedTicket.getId(), Base64.getDecoder().decode(qrCode.getValue()));
     }
 
     orderRepository.save(order);
+
+    notificationService.sendOrderConfirmationEmail(
+            order.getPurchaser(), order, createdTickets, qrImagesByTicketId
+    );
   }
 
   private void handlePaymentFailed(Order order) {

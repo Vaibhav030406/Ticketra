@@ -1,6 +1,12 @@
 package com.devtiro.tickets.services;
 
 import com.devtiro.tickets.domain.entities.Event;
+import com.devtiro.tickets.domain.entities.Order;
+import com.devtiro.tickets.domain.entities.Ticket;
+import com.devtiro.tickets.domain.entities.User;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public interface NotificationService {
 
@@ -8,6 +14,13 @@ public interface NotificationService {
 
   void sendStaffAddedEmail(String toEmail, Event event);
 
-  // Ph2 stub — logs intent only. Ph3 wires up real email delivery.
   void sendEventCancellationEmail(String toEmail, Event event);
+
+  // Ph3: sends the paid attendee their tickets + QR codes as email attachments.
+  void sendOrderConfirmationEmail(
+          User purchaser,
+          Order order,
+          List<Ticket> tickets,
+          Map<UUID, byte[]> qrCodeImagesByTicketId
+  );
 }
