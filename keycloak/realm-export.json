@@ -1,0 +1,92 @@
+{
+  "realm": "event-ticket-platform",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "event-ticket-platform-app",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true
+    },
+    {
+      "clientId": "ticket-backend-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "backend-client-secret-123",
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "ROLE_ORGANIZER"
+      },
+      {
+        "name": "ROLE_ATTENDEE"
+      },
+      {
+        "name": "ROLE_STAFF"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "organizer",
+      "enabled": true,
+      "email": "organizer@example.com",
+      "firstName": "Organizer",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ROLE_ORGANIZER"
+      ]
+    },
+    {
+      "username": "attendee",
+      "enabled": true,
+      "email": "attendee@example.com",
+      "firstName": "Attendee",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ROLE_ATTENDEE"
+      ]
+    },
+    {
+      "username": "staff",
+      "enabled": true,
+      "email": "staff@example.com",
+      "firstName": "Staff",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ROLE_STAFF"
+      ]
+    }
+  ]
+}
